@@ -1,0 +1,25 @@
+# Secrets — never commit these
+.env
+.env.*
+*.pem
+*.key
+*token*.txt
+TOKEN_PASTE_HERE.txt
+
+# OS / editor cruft
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/
+.idea/
+
+# Node
+node_modules/
+npm-debug.log*
+yarn-error.log*
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
