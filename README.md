@@ -1,6 +1,6 @@
 # yygq
 
-This repository was created and initialized by a DSH agent on behalf of
+Waiting for being noitced
 [@MontopiriaCL57](https://github.com/MontopiriaCL57).
 
 - **Visibility:** public
