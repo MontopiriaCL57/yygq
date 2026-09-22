@@ -28,5 +28,6 @@
 本仓库**只包含程序本体**。一切运行期数据（数据库、留言、打卡、上传文件、常用名单、彩蛋图片等）均不入库，程序会在运行时于 `data/` 目录自动创建与管理。
 
 ## 说明
+- `cs2bp/` 基于 [Andycommander66/cs2-map-bp-tool](https://github.com/Andycommander66/cs2-map-bp-tool)（MIT 许可）的本地定制版
 - 站点字体使用 [Zpix 最像素](https://github.com/SolidZORO/zpix-pixel-font)，遵循其原始许可
 - 自用小项目；如需引用请先联系作者
