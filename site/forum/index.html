@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>花果山会议 · yygq面馆</title>
+<link rel="stylesheet" href="/assets/theme.css">
+<style>
+  .hall-h{ display:flex; align-items:flex-end; gap:14px; flex-wrap:wrap; justify-content:space-between; margin-bottom:6px; }
+  .hall-h .sub{ margin-top:6px; }
+  .pcard2{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+
+  /* ── 窄屏：标题与按钮竖排、列表更紧凑 ── */
+  @media (max-width:680px){
+    .hall-h{ flex-direction:column; align-items:stretch; gap:10px; }
+    .hall-h .btn{ margin:0; }
+    .pcard2{ width:100%; }
+    .panel h3{ font-size:.9rem; }
+  }
+</style>
+</head>
+<body>
+<canvas id="bg"></canvas>
+<div id="nav"></div>
+
+<div class="page">
+  <div class="hall-h">
+    <div>
+      <h1 class="title">🐒 花果山会议</h1>
+      <div class="sub">肃正协议已启动</div>
+    </div>
+    <div class="pcard2">
+      <a class="btn sm" href="/forum/new" id="newBtn">✍ 发起议题</a>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="row between aic mb8">
+      <h3 style="margin:0">最新议题</h3>
+      <span class="muted" id="stat">加载中…</span>
+    </div>
+    <div id="list" class="list"><div class="loading">加载中</div></div>
+    <div class="pager" id="pager"></div>
+  </div>
+
+  <div class="panel gold">
+    <h3>议事规则</h3>
+    <div class="muted" style="line-height:1.9">
+      1. 发议题 / 发言需要先<a href="/forum/register">注册</a>并<a href="/forum/login">登录</a>（与谜题榜单同一账号）。<br>
+      2. 标题 ≤80 字，正文 ≤50000 字；配图 ≤20 张（每张 ≤2MB，浏览器端自动压缩）。<br>
+      3. 发言 ≤5000 字；发言与发帖都有频率限制，别刷。<br>
+      4. 留言板照旧独立运行，两边互不影响。
+    </div>
+  </div>
+</div>
+
+<footer>Copyright © yygq面馆 · <b>港ICP备00000001号</b></footer>
+
+<script src="/assets/common.js"></script>
+<script src="/assets/forum.js"></script>
+<script>
+YQ.boot('forum');
+var page = parseInt(YQ.qs('page', '1'), 10) || 1;
+
+function load(p){
+  page = p || 1;
+  YQ.loading('#list');
+  YQ.api('/api/forum/posts?page=' + page + '&size=20').then(function(r){
+    if (YQ.forum.isDown(r)) { YQ.forum.serverHint('#list'); document.getElementById('stat').textContent = '服务未就绪'; document.getElementById('pager').innerHTML=''; return; }
+    if (!r.ok) { YQ.empty('#list', '议题加载失败', r.msg, '⚠'); return; }
+    var d = r.data;
+    document.getElementById('stat').textContent = '共 ' + (d.total||0) + ' 个议题';
+    if (!d.posts || !d.posts.length) {
+      YQ.empty('#list', '还没有人发起议题', '点右上角「发起议题」开第一炮', '🐒');
+    } else {
+      document.getElementById('list').innerHTML = d.posts.map(YQ.forum.postHtml).join('');
+    }
+    YQ.forum.pager('#pager', d.page, d.total, d.size, function(np){
+      load(np); history.replaceState(null,'', np>1 ? '/forum/?page='+np : '/forum/');
+      window.scrollTo({top:0, behavior:'smooth'});
+    });
+  });
+}
+YQ.me(true).then(function(u){
+  if (u) { document.getElementById('newBtn').textContent = '✍ 发起议题'; }
+  else { document.getElementById('newBtn').onclick = function(e){ e.preventDefault(); location.href='/forum/login?next=' + encodeURIComponent('/forum/new'); }; }
+  load(page);
+});
+</script>
+</body>
+</html>

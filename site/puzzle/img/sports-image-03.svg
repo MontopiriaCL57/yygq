@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<rect width="512" height="512" fill="#0a0a12"/>
+<g fill="none" stroke="#00ffd5" stroke-width="7" stroke-linecap="round">
+<rect x="56" y="88" width="400" height="336"/>
+<path d="M136 88 V424"/>
+<path d="M216 88 V424"/>
+<path d="M296 88 V424"/>
+<path d="M376 88 V424"/>
+</g>
+<g fill="none" stroke="#ff00e5" stroke-width="7" stroke-linecap="round" stroke-dasharray="10 22">
+<path d="M96 88 V424"/>
+<path d="M176 88 V424"/>
+<path d="M256 88 V424"/>
+<path d="M336 88 V424"/>
+<path d="M416 88 V424"/>
+</g>
+<g fill="none" stroke="#ffd700" stroke-width="7" stroke-linecap="round">
+<path d="M72 310 C100 290 128 330 156 310 C184 290 212 330 240 310"/>
+<path d="M272 310 C300 290 328 330 356 310 C384 290 412 330 440 310"/>
+<path d="M120 372 C148 352 176 392 204 372"/>
+</g>
+<g fill="#fff">
+<rect x="88" y="66" width="34" height="18"/>
+<rect x="168" y="66" width="34" height="18"/>
+<rect x="248" y="66" width="34" height="18"/>
+<rect x="328" y="66" width="34" height="18"/>
+<rect x="408" y="66" width="34" height="18"/>
+</g>
+</svg>

@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#0a0620">
+<title>yygq面馆 · 留言板</title>
+<link rel="stylesheet" href="/assets/theme.css">
+<style>
+  /* ============================================================
+     留言板：功能与逻辑完全保持原状（gbLoad / gbSend / 展开收起），
+     皮肤对齐全站 v3 主题：切角面板 + 描边霓虹按钮 + 左侧光条卡片 + 头像
+     ============================================================ */
+  .gb-form{ display:flex; flex-direction:column; gap:12px; }
+  .gb-txt{ color:#cdeef7; white-space:pre-wrap; font-size:.92rem; line-height:1.8; word-break:break-word; }
+  .gb-more{ color:var(--neon); font-size:.8rem; margin-left:8px; cursor:pointer; text-shadow:0 0 8px var(--neon); }
+  .gb-more:hover{ opacity:.85; }
+  .gb-fold{ color:#cdeef7; }
+  .gb-name{ color:var(--gold); font-weight:700; text-shadow:0 0 8px rgba(255,215,0,.6); word-break:break-word; }
+  .gb-id{ font-size:.66rem; color:var(--neon); border:1px solid rgba(0,255,213,.45); border-radius:9px; padding:1px 7px; letter-spacing:.06em; background:rgba(0,255,213,.08); white-space:nowrap; }
+  .gb-time{ color:#4a7d8c; font-size:.7rem; letter-spacing:.05em; white-space:nowrap; margin-left:auto; }
+  .gb-item{ padding:13px 15px; }
+  .gb-item:hover{ transform:translateX(3px); }
+  .gb-head{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:10px; }
+  .gb-head h3{ margin:0; }
+  .gb-count{ font-size:.72rem; color:var(--dim); letter-spacing:.1em; }
+  @media (max-width:680px){
+    .gb-item{ padding:11px 12px; }
+    .gb-txt{ font-size:.86rem; }
+    .gb-time{ font-size:.64rem; }
+  }
+</style>
+</head>
+<body>
+<canvas id="bg"></canvas>
+<div id="nav"></div>
+
+<div class="page narrow">
+  <h1 class="title">// 留言板 //</h1>
+  <div class="sub mb16">口令式留言 · 不用注册也能写 · 想带头像就<a href="/forum/login">登录</a>后再发</div>
+
+  <div class="panel">
+    <div class="gb-form">
+      <input class="inp" id="gbName" type="text" maxlength="30" placeholder="请锻造你的迷人徽章" autocomplete="off">
+      <textarea class="ta" id="gbMsg" maxlength="100000" rows="3" placeholder="请输入文本请输入文本请输入文本请输入文本请输入文本请输入文本请输入文本请输入文本请输入文本请输入文本"></textarea>
+      <button class="btn gold block" id="gbSend" onclick="gbSend()">⚡ 发射留言</button>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="gb-head">
+      <h3>全部留言</h3>
+      <span class="gb-count" id="gbCount"></span>
+    </div>
+    <div id="gbList" class="list"><div class="loading">加载中</div></div>
+  </div>
+
+  <footer>Copyright © yygq面馆 · <b>港ICP备00000001号</b> · 全上海最权威学生游戏体育竞技项目综合论坛</footer>
+</div>
+
+<script src="/assets/common.js"></script>
+<script>
+YQ.boot('gb');
+
+/* ↓↓↓ 以下逻辑与原版逐字保持一致（留言板功能保持原状） ↓↓↓ */
+function gbEsc(s){ const d=document.createElement('div'); d.textContent=s==null?'':String(s); return d.innerHTML; }
+function gbExpand(el){
+    var full = decodeURIComponent(el.getAttribute('data-full'));
+    el.parentNode.innerHTML = '<span style="white-space:pre-wrap">'+full.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')+'</span> <a class="gb-more" href="javascript:void(0)" data-full="'+encodeURIComponent(full)+'" onclick="gbCollapse(this)">[收起]</a>';
+  }
+function gbCollapse(el){
+    var full = decodeURIComponent(el.getAttribute('data-full'));
+    el.parentNode.innerHTML = '<span class="gb-fold">'+gbEsc(full.slice(0,1000))+'…</span> <a class="gb-more" href="javascript:void(0)" data-full="'+encodeURIComponent(full)+'" onclick="gbExpand(this)">[展开全部]</a>';
+  }
+async function gbLoad(){
+  try{
+    const r=await fetch('/api/comments');
+    const d=await r.json();
+    const list=document.getElementById('gbList');
+    if(!d.comments||!d.comments.length){ list.innerHTML='<div class="empty"><span class="big">✍</span>还没有留言 —— 勇士，来抢个沙发</div>'; document.getElementById('gbCount').textContent=''; return; }
+    document.getElementById('gbCount').textContent='共 ' + d.comments.length + ' 条';
+
+  function gbRenderContent(content){
+    if(content.length > 1000){
+      return '<div class="gb-txt"><span class="gb-fold">'+gbEsc(content.slice(0,1000))+'…</span><a class="gb-more" href="javascript:void(0)" data-full="'+encodeURIComponent(content)+'" onclick="gbExpand(this)">[展开全部]</a></div>';
+    }
+    return '<div class="gb-txt">'+gbEsc(content)+'</div>';
+  }
+  list.innerHTML=d.comments.map(function(c){
+    /* 头像：只有「登录绑定」的留言才会带 avatar（服务端判定）；匿名一律圆牌，防冒名 */
+    var av = c.avatar
+      ? '<img class="avatar-sm" src="'+gbEsc(c.avatar)+'" alt="" loading="lazy">'
+      : '<span class="avatar-sm avatar-fb">'+gbEsc(String(c.name||'?').slice(0,1))+'</span>';
+    var nm = '<span class="gb-name">'+gbEsc(c.name)+'</span>';
+    if (c.bound) nm += '<span class="gb-id" title="已登录账号发布的留言">✓ 账号</span>';
+    return '<div class="item gb-item"><div class="gb-hd">'+av+ nm +
+      '<span class="gb-time">'+gbEsc(c.time)+'</span></div>'+gbRenderContent(c.content)+'</div>';
+  }).join('');
+  }catch(e){ document.getElementById('gbList').innerHTML='<div class="empty"><span class="big">📡</span>留言板暂时失联…</div>'; }
+}
+async function gbSend(){
+  const name=document.getElementById('gbName').value.trim();
+  const msg=document.getElementById('gbMsg').value.trim();
+  const btn=document.getElementById('gbSend');
+  if(!name){ alert('好歹留个名字吧'); return; }
+  if(!msg){ alert('想说什么直接打'); return; }
+  btn.disabled=true; btn.textContent='🚀 发送中...';
+  try{
+    const r=await fetch('/api/comments',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:name,content:msg})});
+    const d=await r.json();
+    alert(d.msg||'完成');
+    document.getElementById('gbMsg').value='';
+    await gbLoad();
+  }catch(e){ alert('发射失败，服务器开小差了'); }
+  btn.disabled=false; btn.textContent='⚡ 发射留言';
+}
+gbLoad();
+/* 登录后：名字锁定为账号（服务端同样会以账号身份落款）；未登录则自由填写 */
+YQ.me(true).then(function(u){
+  if(!u) return;
+  var n=document.getElementById('gbName');
+  if(n){ n.value=u; n.disabled=true; n.placeholder='已登录：将以账号「'+u+'」留言'; n.title='已登录：将以账号身份留言'; }
+});
+</script>
+</body>
+</html>

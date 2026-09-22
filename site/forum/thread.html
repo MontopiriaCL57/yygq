@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>议题 · 花果山会议</title>
+<link rel="stylesheet" href="/assets/theme.css">
+<style>
+  .post-h{ border-bottom:1px solid var(--line); padding-bottom:12px; margin-bottom:14px; }
+  .post-t{ font-size:1.3rem; color:#fff; letter-spacing:.04em; word-break:break-word; line-height:1.5; }
+  .post-m{ font-size:.75rem; color:var(--dim); margin-top:8px; display:flex; gap:14px; flex-wrap:wrap; }
+  .post-m b{ color:var(--gold); font-weight:400; }
+  .post-b{ font-size:.92rem; line-height:2; color:#dff; word-break:break-word; white-space:normal; }
+  .post-m{ align-items:center; }
+  .post-m img{ margin-right:2px; }
+  .post-bio{ font-size:.76rem; color:var(--dim); border-left:2px solid var(--line); padding-left:10px;
+    margin-top:8px; line-height:1.8; word-break:break-word; }
+  .cmt-h img{ margin-right:2px; }
+  .cmt{ border:1px solid rgba(0,255,213,.22); border-left:2px solid var(--neon); border-radius:5px;
+    background:rgba(0,255,213,.03); padding:11px 13px; margin-bottom:9px; }
+  .cmt-h{ display:flex; gap:12px; align-items:center; font-size:.74rem; color:var(--dim); margin-bottom:6px; flex-wrap:wrap; }
+  .cmt-h b{ color:var(--neon); font-weight:400; }
+  .cmt-u{ color:var(--neon2); }
+  .cmt-b{ font-size:.87rem; line-height:1.9; color:#cff; word-break:break-word; }
+
+  /* ── 窄屏：议题正文与发言排版 ── */
+  @media (max-width:680px){
+    .post-t{ font-size:1.1rem; line-height:1.45; }
+    .post-b{ font-size:.88rem; line-height:1.9; }
+    .post-m{ gap:8px; font-size:.7rem; }
+    .cmt{ padding:10px 11px; }
+    .cmt-h{ gap:8px; font-size:.7rem; }
+    .cmt-b{ font-size:.84rem; }
+  }
+</style>
+</head>
+<body>
+<canvas id="bg"></canvas>
+<div id="nav"></div>
+
+<div class="page narrow">
+  <div class="mb16"><a class="btn ghost sm" href="/forum/">‹ 回议事大厅</a></div>
+  <div id="post"><div class="loading">加载中</div></div>
+
+  <div class="panel">
+    <h3>发言区 <span class="muted" id="cnum"></span></h3>
+    <div id="clist"></div>
+    <div class="pager" id="cpager"></div>
+    <div class="hr"></div>
+    <div id="cform">
+      <div class="field">
+        <textarea class="ta" id="cbody" maxlength="1000" placeholder="说点什么……（≤1000 字）"></textarea>
+        <div class="counter" id="ccount">0 / 1000</div>
+      </div>
+      <button class="btn" id="cbtn">📣 发表发言</button>
+      <span class="muted" id="chint"></span>
+    </div>
+  </div>
+</div>
+
+<footer>Copyright © yygq面馆 · <b>港ICP备00000001号</b></footer>
+
+<script src="/assets/common.js"></script>
+<script src="/assets/forum.js"></script>
+<script>
+YQ.boot('forum');
+var pid = parseInt(YQ.qs('id','0'),10) || 0;
+var cpage = 1;
+
+function loadPost(){
+  if(!pid){ YQ.empty('#post','没有指定议题','id 参数缺失','❓'); return Promise.resolve(); }
+  return YQ.api('/api/forum/posts/' + pid).then(function(r){
+    if (YQ.forum.isDown(r)) { YQ.forum.serverHint('#post'); document.getElementById('cform').style.display='none'; return; }
+    if (!r.ok) { YQ.empty('#post', r.msg || '议题不存在', '它可能已被删除', '🕳'); document.getElementById('cform').style.display='none'; return; }
+    var p = r.data.post;
+    document.title = p.title + ' · 花果山会议';
+    var avh = YQ.forum.avatarHtml(p.author, p.avatar, 'avatar-md');
+    document.getElementById('post').innerHTML =
+      '<div class="panel"><div class="post-h"><div class="post-t">' + YQ.esc(p.title) + '</div>' +
+      '<div class="post-m">' + avh + '<span>代表 <b>' + YQ.esc(p.author) + '</b></span>' +
+      '<span>' + YQ.esc(YQ.fmtTime(p.created)) + '</span>' +
+      '<span>发言 <b>' + (p.comments|0) + '</b></span></div>' +
+      (p.bio ? '<div class="post-bio">' + YQ.esc(p.bio) + '</div>' : '') + '</div>' +
+      '<div class="post-b">' + (YQ.forum.bodyHtml ? YQ.forum.bodyHtml(p.body, p.media) : YQ.escBr(p.body)) + '</div>' +
+      YQ.forum.mediaHtml(p.media, p.body) + '</div>';
+  });
+}
+
+function loadComments(p){
+  cpage = p || 1;
+  YQ.loading('#clist','加载发言');
+  YQ.api('/api/forum/posts/' + pid + '/comments?page=' + cpage + '&size=30').then(function(r){
+    if (!r.ok) { YQ.empty('#clist','发言加载失败', r.msg, '⚠'); return; }
+    var d = r.data;
+    document.getElementById('cnum').textContent = '共 ' + (d.total||0) + ' 条';
+    document.getElementById('clist').innerHTML = (d.comments && d.comments.length)
+      ? d.comments.map(YQ.forum.commentHtml).join('')
+      : '<div class="empty"><span class="big">💬</span>还没有人发言<span class="sub">抢占第一排</span></div>';
+    YQ.forum.pager('#cpager', d.page, d.total, d.size, function(np){ loadComments(np); });
+  });
+}
+
+document.getElementById('cbtn').onclick = function(){
+  var btn = this, ta = document.getElementById('cbody'), body = ta.value.trim();
+  if (!body) { YQ.toast('发言不能为空', true); return; }
+  YQ.forum.needLogin('/forum/thread?id=' + pid).then(function(u){
+    if (!u) return;
+    btn.disabled = true; btn.textContent = '发送中…';
+    YQ.api('/api/forum/posts/' + pid + '/comments', { method:'POST', body:{ body: body } }).then(function(r){
+      btn.disabled = false; btn.textContent = '📣 发表发言';
+      if (!r.ok) { YQ.toast(r.msg || '发言失败', true); return; }
+      ta.value=''; document.getElementById('ccount').textContent='0 / 1000';
+      YQ.toast('发言成功');
+      loadComments(1); loadPost();
+      setTimeout(function(){ var el=document.querySelector('.cmt:last-child'); if(el) el.scrollIntoView({behavior:'smooth',block:'center'}); }, 300);
+    });
+  });
+};
+YQ.counter('#cbody','#ccount',1000);
+
+YQ.me(true).then(function(u){
+  var h = document.getElementById('chint');
+  if (!u) {
+    h.innerHTML = '（<a href="/forum/login?next=' + encodeURIComponent('/forum/thread?id='+pid) + '">登录</a>后才能发言）';
+    document.getElementById('cbtn').onclick = function(){ location.href='/forum/login?next=' + encodeURIComponent('/forum/thread?id='+pid); };
+  }
+  loadPost().then(function(){ loadComments(1); });
+});
+</script>
+</body>
+</html>

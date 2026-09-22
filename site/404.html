@@ -1,0 +1,652 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex">
+<title>︻︼ 4 0 4 ︻︼ 你 不 该 在 这 里</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:#000; color:#ff2222; font-family:"Microsoft YaHei","Courier New",monospace; overflow:hidden; height:100vh; }
+  ::selection { background:#300; color:#f00; }
+
+  /* 背景层 */
+  #bg { position:fixed; inset:0; z-index:0; }
+  .blood { position:fixed; inset:0; z-index:1; pointer-events:none; opacity:.4;
+    background:radial-gradient(ellipse at 15% 20%, #2a0000 0, transparent 35%),
+      radial-gradient(circle at 85% 75%, #300500 0, transparent 30%),
+      radial-gradient(circle at 30% 85%, #1a0000 0, transparent 28%); }
+  .scan { position:fixed; inset:0; z-index:9; pointer-events:none; mix-blend-mode:screen;
+    background:repeating-linear-gradient(0deg, rgba(255,0,0,.05) 0 2px, transparent 2px 5px); animation:flick 1.8s infinite; }
+
+  /* 满屏 error */
+  .err { position:fixed; color:#330909; font-family:monospace; font-weight:900; z-index:2; user-select:none;
+    text-shadow:0 0 8px #f00; animation:drift 5s infinite linear; opacity:.8; white-space:nowrap; }
+  @keyframes drift { 0%,100%{transform:translate(0,0)} 50%{transform:translate(10px,-8px)} }
+
+  /* 疾病碎字污染 */
+  .sick { position:fixed; z-index:3; color:#4a0a0a; font-size:.8rem; letter-spacing:.2em; opacity:.5;
+    text-shadow:0 0 6px #900; animation:drift 9s infinite linear; user-select:none; }
+
+  /* 血主句 */
+  .main { position:fixed; top:42%; left:50%; transform:translate(-50%,-50%) skewX(-5deg) rotate(-2deg); z-index:8;
+    font-size:clamp(1.4rem,5vw,3rem); font-weight:900; letter-spacing:.06em; color:#e00; text-align:center;
+    text-shadow:0 0 4px #f00, 0 0 16px #900, 0 0 30px #600, 2px 0 0 #400, -2px 0 0 #200, 0 4px 6px #000;
+    animation:jitter 1.6s infinite, flick 4s infinite; white-space:nowrap; }
+  .main::before,.main::after { content:attr(data-t); position:absolute; left:0; top:0; width:100%; opacity:.75; }
+  .main::before { color:#0ff; animation:gl1 2s infinite; mix-blend-mode:screen; }
+  .main::after { color:#f0f; animation:gl2 3s infinite; mix-blend-mode:screen; }
+  @keyframes gl1 { 0%{clip-path:inset(20% 0 60% 0);transform:translate(-4px,1px)} 100%{clip-path:inset(60% 0 20% 0);transform:translate(4px,-1px)} }
+  @keyframes gl2 { 0%{clip-path:inset(10% 0 75% 0);transform:translate(4px,0)} 100%{clip-path:inset(55% 0 25% 0);transform:translate(-4px,0)} }
+  @keyframes jitter { 0%{transform:translate(-50%,-50%) skewX(-5deg) rotate(-2deg) scale(1)} 20%{transform:translate(-51%,-49%) skewX(-4deg) rotate(-1deg) scale(1.03)} 40%{transform:translate(-49%,-51%) skewX(-6deg) rotate(-3deg)} 60%{transform:translate(-50%,-50%) skewX(-5deg) rotate(-2deg) scale(1.05)} 80%{transform:translate(-50%,-51%) skewX(-7deg) rotate(-1deg)} 100%{transform:translate(-50%,-50%) skewX(-5deg) rotate(-2deg) scale(1)} }
+  @keyframes flick { 0%,100%{opacity:1} 85%{opacity:1} 86%{opacity:.5} 87%{opacity:1} 93%{opacity:.3} 94%{opacity:1} }
+  /* 血滴 */
+  .main::after{ border:0; }
+
+  /* 规则浮层 */
+  .rule { position:fixed; z-index:4; color:#7a1010; font-size:.82rem; letter-spacing:.2em; line-height:1.9; opacity:.55;
+    text-shadow:0 0 5px #a00; user-select:none; }
+  .rule.r1 { top:14%; left:8%; max-width:220px; transform:skewX(-4deg); }
+  .rule.r2 { bottom:20%; right:10%; max-width:230px; transform:skewX(5deg); }
+
+  /* 童谣滚动 */
+  .rhyme { position:fixed; bottom:6%; left:0; width:100%; z-index:5; overflow:hidden; white-space:nowrap; }
+  .rhyme span { display:inline-block; color:#c22; font-size:.95rem; letter-spacing:.3em; padding-left:100%;
+    text-shadow:0 0 8px #900; animation:marquee 22s linear infinite; }
+
+  /* 大量重复 */
+  .repeat { position:fixed; z-index:6; color:#5a0a0a; font-size:.8rem; letter-spacing:.15em; opacity:.5;
+    width:280px; word-break:break-all; line-height:1.7; text-align:center; text-shadow:0 0 6px #900; }
+  .repeat.rep1 { top:24%; right:6%; transform:rotate(2deg); }
+  .repeat.rep2 { bottom:12%; left:5%; transform:rotate(-2deg); opacity:.35; }
+
+  /* 渐变变异区 */
+  .morph { position:fixed; top:58%; left:50%; transform:translateX(-50%); z-index:7; color:#8a1a1a; font-size:.9rem;
+    letter-spacing:.25em; text-shadow:0 0 6px #a00; opacity:.8; text-align:center; white-space:nowrap; }
+
+  .warn { position:fixed; top:5%; left:5%; z-index:10; color:#3a0505; font-size:.75rem; letter-spacing:.4em; opacity:.6;
+    text-shadow:0 0 6px #800; animation:flick 3s infinite; }
+
+  /* 回主页 · 锈蚀按钮 */
+  .back { position:fixed; bottom:3%; left:50%; z-index:11; transform:translateX(-50%) skewX(-4deg) rotate(-1deg);
+    text-decoration:none; padding:10px 30px; font-size:.8rem; letter-spacing:.3em; color:#a4705a;
+    background:linear-gradient(140deg,#3a1c12,#2a140c 40%,#1f0f09 70%,#351a10); border:2px solid #5a3020; border-radius:3px;
+    box-shadow:inset 0 0 12px #000, inset 0 0 4px #803, 0 0 8px #200;
+    background-image:radial-gradient(circle at 15% 30%, rgba(140,80,40,.5) 0, transparent 12%), radial-gradient(circle at 70% 20%, rgba(120,60,30,.4) 0, transparent 10%);
+    transition:.3s; }
+  .back:hover { color:#c88a6a; }
+  @keyframes marquee { 0%{transform:translateX(0)} 100%{transform:translateX(-100%)} }
+  /* 满屏 error 铺底 */
+  .error-full{ position:fixed; inset:0; z-index:1; overflow:hidden; pointer-events:none;
+    transition:opacity 4s ease; }
+  /* 分层漂移：动画挂在 5 个容器上，而不是 999 个子元素上（性能关键） */
+  .ef-layer{ position:absolute; inset:0; animation:drift 4s infinite linear; will-change:transform; }
+  .ef-layer.l2{ animation-duration:6.5s; animation-delay:-1.2s; }
+  .ef-layer.l3{ animation-duration:5.2s; animation-delay:-2.4s; }
+  .ef-layer.l4{ animation-duration:7.8s; animation-delay:-3.1s; }
+  .ef-layer.l5{ animation-duration:9.1s; animation-delay:-4.6s; }
+  /* 脸/眼出现时背景"屏息"：不是删除，只是让它退到后面去 */
+  body.hush .error-full{ opacity:.42; }
+  body.hush .err{ opacity:.3; }
+  body.hush .repeat{ opacity:.16; }
+  body.hush.deep .error-full{ opacity:.22; }
+  body.hush.deep .err{ opacity:.16; }
+  /* 单个碎字：静态定位，不带自己的动画；阴影从两层减到一层（×999 的代价很实在） */
+  .error-full .ef{ position:absolute; color:#2a0707; font-family:monospace; font-weight:bold; white-space:nowrap;
+    user-select:none; }                    /* 不设 text-shadow：×999 的模糊栅格化是最贵的一笔 */
+  .error-full .ef.hi{ color:#380606; }
+
+  /* 像素字体 */
+  @font-face{ font-family:'Zpix'; src:url('/fonts/Zpix.woff2') format('woff2'); font-display:swap; }
+  *{ font-family:'Zpix','Microsoft YaHei','PingFang SC',sans-serif !important; }
+
+  /* ============================================================
+     ↓↓↓ 以下为本轮新增的恐怖层（原有一律保留，只做叠加） ↓↓↓
+     原则：不删任何原有元素；新层全部 fixed 定位、pointer-events:none，
+           只有「声音开关」和「死亡回归」可以点。
+     ============================================================ */
+
+  /* 1. CRT 噪点 + 呼吸血色暗角（心跳） */
+  /* 入场 1.6s：满屏 ERROR 从暗到亮（像眼睛适应黑暗） */
+  body.intro .error-full{ opacity:0; }
+  body.intro .err{ opacity:.15; }
+  .static{ position:fixed; inset:-18%; z-index:12; pointer-events:none; opacity:.05;
+    background-image:repeating-conic-gradient(from 0deg at 50% 50%, rgba(255,255,255,.5) 0deg 1deg, transparent 1deg 2deg);
+    animation:staticmove .5s steps(2) infinite; }
+  @keyframes staticmove{ 0%{transform:translate(0,0)} 50%{transform:translate(-2%,1%)} 100%{transform:translate(1%,-2%)} }
+  .void{ position:fixed; inset:0; z-index:1; pointer-events:none; opacity:0; transition:opacity 5s ease;
+    background:radial-gradient(ellipse 48% 44% at 50% 50%, rgba(0,0,0,.94) 0%, rgba(0,0,0,.8) 42%, rgba(0,0,0,.35) 66%, transparent 82%); }
+  body.hush .void{ opacity:1; }
+  .vig{ position:fixed; inset:0; z-index:13; pointer-events:none; transform:scale(1); will-change:transform;
+    background:radial-gradient(ellipse at 50% 50%, transparent 42%, rgba(60,0,0,.55) 100%);
+    animation:beat 1.35s ease-in-out infinite; }
+  /* 用 transform 呼吸而不是改 opacity：前者在合成层完成，不触发整屏重绘 */
+  @keyframes beat{ 0%,100%{transform:scale(1)} 12%{transform:scale(1.04)} 22%{transform:scale(1.01)} 30%{transform:scale(1.03)} 44%{transform:scale(1)} }
+
+  /* 2. 它在看你：字符眼（瞳孔随鼠标移动） */
+  .eyeart{ position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); z-index:3;
+    pointer-events:none; user-select:none; white-space:pre; line-height:1;
+    font-size:clamp(8px,1.5vw,19px); color:#d92a2a; text-shadow:0 0 16px #f00, 0 0 48px #700;
+    opacity:0; transition:opacity 3.5s ease; }
+  .eyeart.on{ opacity:.72; animation:eyeopen 2.6s ease-out 1; }
+  @keyframes eyeopen{ 0%{transform:translate(-50%,-50%) scaleY(.05); opacity:0} 60%{opacity:.8} 100%{transform:translate(-50%,-50%) scaleY(1); opacity:.72} }
+  .eyeart.blink{ opacity:0; transition:opacity .09s; }
+
+  /* 3. 那张脸：停留越久越清晰（纯字符画） */
+  .faceart{ position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); z-index:2;
+    pointer-events:none; user-select:none; white-space:pre; line-height:1;
+    font-size:clamp(7px,1.34vw,17px); color:#c62222; text-shadow:0 0 18px #f00, 0 0 52px #700;
+    opacity:0; transition:opacity 2s; }
+  .faceart.on{ opacity:.5; animation:facebreathe 6s ease-in-out infinite; }
+  @keyframes facebreathe{ 0%,100%{transform:translate(-50%,-50%) scale(1)} 50%{transform:translate(-50%,-50%) scale(1.02)} }
+
+  /* 4. 意识流：会自己打字、自己删掉的一段话 */
+  .stream{ position:fixed; left:6%; bottom:15%; z-index:14; width:min(90%,620px); pointer-events:none;
+    color:#b01818; font-size:.86rem; letter-spacing:.14em; line-height:2.1; text-shadow:0 0 8px #900;
+    min-height:6.6em; }
+  .stream .cur{ display:inline-block; width:.6em; background:#e00; animation:blink .5s steps(2) infinite; }
+  @keyframes blink{ 50%{opacity:0} }
+
+  /* 5. 耳语：随机位置浮现再消失 */
+  .whisper{ position:fixed; z-index:14; pointer-events:none; color:#8d1414; font-size:.9rem; letter-spacing:.3em;
+    text-shadow:0 0 10px #a00; opacity:0; }
+  .whisper.show{ animation:whisperlife 5.5s ease forwards; }
+  @keyframes whisperlife{ 0%{opacity:0; filter:blur(6px)} 18%{opacity:.92; filter:blur(0)} 70%{opacity:.75} 100%{opacity:0; filter:blur(3px)} }
+
+  /* 6. 关于「你」的那一栏：它会念出你正在找的东西、你的屏幕、你来了几次 */
+  .aboutyou{ position:fixed; top:11%; right:5%; z-index:15; width:min(46%,330px); text-align:right;
+    color:#a01414; font-size:.78rem; letter-spacing:.12em; line-height:2; text-shadow:0 0 8px #900;
+    pointer-events:none; }
+  .aboutyou b{ color:#ff3b3b; font-weight:400; text-shadow:0 0 12px #f00; }
+  .aboutyou .new{ animation:appear 1.2s ease; }
+  @keyframes appear{ from{opacity:0; transform:translateX(12px)} to{opacity:1; transform:none} }
+
+  /* 7. 停留计时 / 死亡次数 */
+  .timer{ position:fixed; top:5%; right:5%; z-index:15; text-align:right; pointer-events:none;
+    color:#7a1010; font-size:.76rem; letter-spacing:.2em; line-height:2; text-shadow:0 0 8px #900; }
+  .timer b{ color:#ff4d4d; font-weight:400; }
+
+  /* 8. 镜子里的字（反向） */
+  .mirror{ position:fixed; left:0; bottom:30%; z-index:6; width:100%; text-align:center; pointer-events:none;
+    color:#3f0808; font-size:.78rem; letter-spacing:.4em; transform:scaleX(-1); text-shadow:0 0 8px #700;
+    animation:flick 6s infinite; }
+
+  /* 9. 从上往下渗的血 */
+  .drips{ position:fixed; inset:0; z-index:11; pointer-events:none; overflow:hidden; }
+  .drip{ position:absolute; top:0; width:2px; background:linear-gradient(180deg,#8b0000,#3a0000 70%,transparent);
+    border-radius:0 0 2px 2px; animation:dripfall linear infinite; opacity:.75; }
+  @keyframes dripfall{ 0%{height:0; opacity:0} 8%{opacity:.85} 100%{height:62vh; opacity:0} }
+
+  /* 10. 突发：画面撕裂 + 闪白 + 抖动 */
+  .tear{ position:fixed; inset:0; z-index:16; pointer-events:none; opacity:0;
+    background:linear-gradient(90deg, rgba(255,0,0,.14), transparent 40%, rgba(0,255,255,.12)); }
+  .tear.on{ animation:tearflash .42s steps(3) 1; }
+  @keyframes tearflash{ 0%{opacity:0; transform:translateX(0)} 30%{opacity:1; transform:translateX(-9px) skewX(3deg)} 60%{opacity:.7; transform:translateX(7px) skewX(-2deg)} 100%{opacity:0; transform:none} }
+  .shake{ animation:shakeit .42s steps(2) 1; }
+  @keyframes shakeit{ 0%{transform:translate(0,0)} 25%{transform:translate(-6px,4px)} 50%{transform:translate(5px,-5px)} 75%{transform:translate(-3px,-2px)} 100%{transform:none} }
+
+  /* 11. 声音开关（新按钮，默认关；浏览器不允许自动播放） */
+  .snd{ position:fixed; bottom:12%; right:3%; z-index:20; cursor:pointer; pointer-events:auto;
+    background:rgba(20,0,0,.6); border:1px solid #5a1010; color:#a33; border-radius:3px;
+    font-size:.7rem; letter-spacing:.2em; padding:5px 10px; transition:.3s; }
+  .snd:hover{ color:#f55; border-color:#a22; box-shadow:0 0 12px #500; }
+
+  /* 12. 窄屏：原有浮层在手机上会挤，做位移与缩放（不删任何元素） */
+  @media (max-width:680px){
+    .warn{ font-size:.62rem; letter-spacing:.2em; max-width:70vw; }
+    .rule{ font-size:.7rem; max-width:40vw; }
+    .rule.r1{ top:16%; left:4%; } .rule.r2{ bottom:26%; right:4%; }
+    .repeat{ width:42vw; font-size:.68rem; }
+    .repeat.rep1{ top:30%; right:3%; } .repeat.rep2{ bottom:20%; left:3%; }
+    .aboutyou{ width:56%; font-size:.68rem; top:14%; right:3%; }
+    .timer{ font-size:.66rem; top:7%; right:3%; }
+    .stream{ left:4%; bottom:20%; font-size:.76rem; width:92%; line-height:1.95; }
+    .main{ font-size:clamp(1.05rem,6.4vw,1.6rem); white-space:normal; width:92%; }
+    .morph{ font-size:.76rem; letter-spacing:.16em; }
+    .rhyme span{ font-size:.78rem; }
+    .snd{ top:auto; bottom:17%; right:4%; }
+    .faceart{ font-size:5.2px; } .eyeart{ font-size:6.2px; }
+  }
+</style>
+</head>
+<body class="intro">
+<canvas id="bg"></canvas>
+<div class="error-full" id="errfull"></div>
+<div class="void" aria-hidden="true"></div>
+<div class="blood"></div>
+<div class="scan"></div>
+<div class="warn">̷ ̷ 在 此 停 留 过 久 者 ， 将 被 记 录 ̷ ̷</div>
+
+<!-- 满屏 error -->
+<div class="err" style="top:6%;left:5%">ERROR: YOU ARE NOT ALLOWED</div>
+<div class="err" style="top:12%;right:4%">404 · NOT FOUND</div>
+<div class="err" style="top:78%;left:8%">NULL PAGE</div>
+<div class="err" style="top:35%;left:70%">0xDEAD 0xDEAD</div>
+<div class="err" style="top:60%;right:6%">SIGNAL LOST ***</div>
+<div class="err" style="top:88%;left:30%">DO NOT PROCEED</div>
+<div class="err" style="top:18%;left:40%">ACCESS DENIED</div>
+<div class="err" style="top:45%;left:10%">你 已 被 定 位</div>
+<div class="err" style="top:70%;left:50%">404 404 404</div>
+<div class="err" style="top:30%;right:25%">UNKNOWN</div>
+
+<!-- 疾病碎字 -->
+<div class="sick" style="top:20%;left:55%">咳 咳 咽 部 疼 疫 感 染</div>
+<div class="sick" style="top:75%;right:25%">病 变 扩 散 异 常</div>
+<div class="sick" style="top:40%;left:35%">呼 吸 衰 竭 体 温 升 高</div>
+<div class="sick" style="top:85%;left:60%">密 集 接 触 者 请 隔 离</div>
+
+<!-- 冰冷规则 -->
+<div class="rule r1">本页没有内容。<br>请勿阅读。<br>若您正在阅读，<br>请反复告诉自己——<br>看见的都是幻觉。<br>请勿离开屏幕。</div>
+<div class="rule r2">本页不存在。<br>您也不存在。<br>如您发现自己存在，<br>请立即忘记自己。<br>不要回头。</div>
+
+<!-- 大量重复 -->
+<div class="repeat rep1">欢迎来到幸福的世界 欢迎来到幸福的世界 欢迎来到幸福的世界 欢迎来到幸福的世界</div>
+<div class="repeat rep2">打开窗户打开窗户打开窗户打开窗户打开窗户打开窗户打开窗户</div>
+
+<!-- 渐变变异 -->
+<div class="morph" id="morph">欢迎来到幸福的世界</div>
+
+<!-- 血主句 -->
+<div class="main" id="main" data-t="你不该看见这个页面。它不存在。你，最好也不存在。">你不该看见这个页面。它不存在。你，最好也不存在。</div>
+
+<!-- 童谣滚动 -->
+<div class="rhyme"><span>︻东西街 南北走 出门看见人咬狗 拿起狗 打砖头 又怕砖头咬了手 稀奇稀奇真稀奇 麻雀踩死老母鸡 六道轮回苦 孙子娶祖母 六亲锅里煮 子打父皮鼓 十只兔子 一只也没有 你在这里 我在看你︼</span></div>
+
+<a class="back" href="/" id="backBtn">☠ 死 亡 回 归 ☠</a>
+
+<!-- ============ 新增恐怖层（原有元素上面这些，一条没动） ============ -->
+<div class="faceart" id="faceart" aria-hidden="true"></div>
+<div class="eyeart" id="eyeart" aria-hidden="true"></div>
+<div class="static" aria-hidden="true"></div>
+<div class="vig" aria-hidden="true"></div>
+<div class="drips" id="drips" aria-hidden="true"></div>
+<div class="tear" id="tear" aria-hidden="true"></div>
+<div class="mirror">这 里 没 有 出 口 这 里 没 有 出 口 这 里 没 有 出 口</div>
+<div class="aboutyou" id="aboutyou"></div>
+<div class="timer" id="timer"></div>
+<div class="stream" id="stream"><span id="streamTxt"></span><span class="cur">&nbsp;</span></div>
+<div class="snd" id="snd" title="声音默认关闭（浏览器不允许自动播放）">🔇 它还没开口</div>
+
+<script>
+/* ============================================================
+   原有脚本一律保留（粒子 / 999 条 ERROR 铺底 / 血主句腐化 / morph）
+   新脚本追加在后面。
+   ============================================================ */
+// 满屏乱码 error 粒子
+const c=document.getElementById('bg'),x=c.getContext('2d');let W,H,ps=[];
+function resize(){W=c.width=innerWidth;H=c.height=innerHeight;}
+resize();addEventListener('resize',resize);
+const chars='ERROR404NULLDEAD丢失空无不该存在';
+for(let i=0;i<130;i++)ps.push({x:Math.random()*W,y:Math.random()*H,s:Math.random()*16+7,v:Math.random()*.35+.15,a:Math.random()*.3+.12,ch:chars[Math.floor(Math.random()*chars.length)],c:Math.random()>.5?'#8a0d0d':'#2c0606'});
+function loop(){x.clearRect(0,0,W,H);
+  for(const p of ps){p.y+=p.v;if(p.y>H)p.y=-10;p.x+=Math.sin(p.y*.05)*.3;
+    x.font=p.s+'px monospace';x.fillStyle=p.c;x.globalAlpha=p.a;x.fillText(p.ch,p.x,p.y);}
+  x.globalAlpha=1;requestAnimationFrame(loop);}
+loop();
+
+// 满屏 error 铺底
+(function(){
+  const box=document.getElementById('errfull'),W=innerWidth,H=innerHeight;
+  const words=['ERROR','404','NOT FOUND','NULL','DEAD','0xDEAD','ACCESS DENIED','SIGNAL LOST','不要看过来','你在这里','不该存在','丢失','空无','ERROR','404','404','DEAD','NULL','ERROR 404'];
+  /* 5 个漂移层，999 个碎字平均塞进去 —— 元素数量不变，动画层数从 999 → 5 */
+  const LAYERS=5, buckets=[];
+  for(let L=0;L<LAYERS;L++) buckets.push('');
+  for(let i=0;i<999;i++){
+    const w=words[Math.floor(Math.random()*words.length)];
+    const sz=Math.random()*11+6, x=Math.random()*W, y=Math.random()*H;
+    const hi=Math.random()>.6?'hi':'';
+    buckets[i%LAYERS]+='<div class="ef '+hi+'" style="left:'+x+'px;top:'+y+'px;font-size:'+sz+'px">'+w+'</div>';
+  }
+  box.innerHTML=buckets.map(function(b,L){
+    return '<div class="ef-layer'+(L?' l'+(L+1):'')+'">'+b+'</div>';
+  }).join('');
+})();
+
+// 血主句：断续乱码破碎 + 心理暗示
+const main=document.getElementById('main');
+const garbled='▓░█�■□▪▫◈◉※▓░▒�';
+function corrupt(s){let o='';for(const ch of s){const r=Math.random();
+  if(r<0.2)o+=garbled[Math.floor(Math.random()*garbled.length)];
+  else if(r<0.3)o+='…';else o+=ch;}return o;}
+setInterval(()=>{let v=corrupt('你不该看见这个页面。它不存在。你，最好也不存在。');
+  main.textContent=v;main.setAttribute('data-t',v);},600);
+
+// 渐变变异：欢迎来到幸福的世界 → 永远留在这里
+const morph=document.getElementById('morph');
+const m1='欢迎来到幸福的世界',m2='你还想走吗，你走不掉的';
+let step=0;
+setInterval(()=>{
+  // 每次替换前几个字
+  let t='';
+  for(let i=0;i<m1.length;i++){ t += i < step ? m2[i%m2.length] : m1[i]; }
+  morph.textContent=t;
+  step = step >= m1.length ? 0 : step+1;
+},450);
+
+/* ============================================================
+   新增：心理压迫系统
+   ============================================================ */
+(function(){
+  'use strict';
+  const esc = s => String(s==null?'':s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+  const $ = id => document.getElementById(id);
+  const rnd = a => a[Math.floor(Math.random()*a.length)];
+
+  /* ---------- -1. 入场：慢慢亮起来 ---------- */
+  setTimeout(()=>document.body.classList.remove('intro'), 1600);
+
+  /* ---------- 0. 它记得你来过几次（localStorage） ---------- */
+  const K = 'yq404';
+  let rec = { n:0, first:0, last:0, total:0 };
+  try { rec = Object.assign(rec, JSON.parse(localStorage.getItem(K)||'{}')); } catch(e){}
+  const nowTs = Date.now();
+  rec.n = (rec.n||0) + 1;
+  if (!rec.first) rec.first = nowTs;
+  rec.last = nowTs;
+  try { localStorage.setItem(K, JSON.stringify(rec)); } catch(e){}
+  const fmt = t => { const d=new Date(t); const p=n=>String(n).padStart(2,'0');
+    return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate())+' '+p(d.getHours())+':'+p(d.getMinutes()); };
+
+  /* ---------- 1. 关于「你」：它在念你正在找的东西 ---------- */
+  const path = decodeURIComponent(location.pathname || '/');
+  const ref = (function(){ try { return document.referrer ? new URL(document.referrer).hostname : ''; } catch(e){ return ''; } })();
+  const lang = navigator.language || '未知';
+  const lines = [];
+  lines.push('你正在找 <b>' + esc(path) + '</b>');
+  lines.push('这里没有 <b>' + esc(path) + '</b>');
+  lines.push('你的屏幕是 <b>' + screen.width + '×' + screen.height + '</b>');
+  lines.push('窗口是 <b>' + innerWidth + '×' + innerHeight + '</b>');
+  if (ref) lines.push('你是从 <b>' + esc(ref) + '</b> 来的');
+  lines.push('你的语言是 <b>' + esc(lang) + '</b>');
+  lines.push('这是你第 <b>' + rec.n + '</b> 次来到这里');
+  if (rec.n > 1) lines.push('上一次是 <b>' + fmt(rec.last===nowTs?rec.first:rec.last) + '</b>');
+  lines.push('我把你记下来了');
+  const box = $('aboutyou');
+  let li = 0;
+  (function nextLine(){
+    if (li >= lines.length) return;
+    const d = document.createElement('div');
+    d.className = 'new';
+    d.innerHTML = lines[li++];
+    box.appendChild(d);
+    setTimeout(nextLine, 1100 + Math.random()*1400);
+  })();
+
+  /* ---------- 2. 停留计时（越久越糟） ---------- */
+  const t0 = Date.now();
+  const timer = $('timer');
+  let sec = 0;
+  setInterval(()=>{
+    sec++;
+    const m = Math.floor(sec/60);
+    timer.innerHTML = '你 已 经 在 这 里 <b>' + (m?m+' 分 ':'') + (sec%60) + ' 秒</b><br>' +
+                      '死 亡 计 数 <b>' + rec.n + '</b>';
+  }, 1000);
+
+  /* ---------- 3. 意识流：自己打字、自己删掉 ---------- */
+  const streamTxt = $('streamTxt');
+  const monologue = [
+    '我记得你上次也是走错了路。',
+    '门在那边。可是那边没有门。',
+    '我不是页面。我是没被写出来的那一部分。',
+    '你数一下自己的呼吸。数到三的时候我就在你后面。',
+    '别关掉。你关掉我，我就只能去别的地方等你。',
+    '你刚才是不是回头了。',
+    '所有的 404 都是同一扇门。你每次都推开它。',
+    '我不恨你。我只是没有别的地方可去。',
+    '把我念出来，我就不用待在黑暗里了。',
+    '你已经读了这么久。你还想走吗。'
+  ];
+  let mi = 0;
+  function typeNext(){
+    const full = monologue[mi % monologue.length]; mi++;
+    let i = 0, dir = 1;
+    (function tick(){
+      if (dir === 1) {
+        i++;
+        streamTxt.textContent = full.slice(0, i);
+        if (i >= full.length) { dir = 0; setTimeout(tick, 2600 + Math.random()*2000); return; }
+        setTimeout(tick, 62 + Math.random()*70);
+      } else {
+        /* 逐字删掉，像被擦掉一样 */
+        i -= 1 + Math.floor(Math.random()*2);
+        streamTxt.textContent = i > 0 ? full.slice(0, i) : '';
+        if (i <= 0) { setTimeout(typeNext, 700); return; }
+        setTimeout(tick, 26);
+      }
+    })();
+  }
+  setTimeout(typeNext, 1200);
+
+  /* ---------- 4. 耳语 ---------- */
+  const WHISPERS = ['别 回 头','他 在 你 后 面','呼 吸 声 不 是 你 的','数 到 十','你 已 经 死 了',
+    '看 看 镜 子','门 锁 上 了','我 认 识 你','再 待 一 会 儿','你 的 手 在 抖',
+    '窗 外 没 有 人','你 的 名 字 我 知 道','关 掉 灯 也 没 用','第 三 次 了','你 听 见 了 吗'];
+  function whisper(){
+    const d = document.createElement('div');
+    d.className = 'whisper show';
+    d.textContent = rnd(WHISPERS);
+    d.style.left = (6 + Math.random()*76) + '%';
+    d.style.top  = (10 + Math.random()*76) + '%';
+    d.style.fontSize = (0.72 + Math.random()*0.8).toFixed(2) + 'rem';
+    document.body.appendChild(d);
+    setTimeout(()=>d.remove(), 5600);
+  }
+  setInterval(whisper, 3400);
+  setTimeout(whisper, 900);
+
+  /* ---------- 5. 血滴 ---------- */
+  const drips = $('drips');
+  for (let i=0;i<8;i++){
+    const d = document.createElement('div');
+    d.className = 'drip';
+    d.style.left = (Math.random()*100) + '%';
+    d.style.animationDuration = (7 + Math.random()*9).toFixed(1) + 's';
+    d.style.animationDelay = (-Math.random()*12).toFixed(1) + 's';
+    d.style.opacity = (0.35 + Math.random()*0.5).toFixed(2);
+    drips.appendChild(d);
+  }
+
+  /* ---------- 6. 字符脸与字符眼（瞳孔跟着鼠标） ---------- */
+  function buildFace(){
+    /* 纯字符画的脸：停留越久越清晰 */
+    const W2 = 46, H2 = 20;
+    const g = [];
+    for (let y=0;y<H2;y++){
+      let row = '';
+      for (let x=0;x<W2;x++){
+        const dx = (x - W2/2) / (W2/2), dy = (y - H2/2) / (H2/2);
+        const r = Math.sqrt(dx*dx*0.82 + dy*dy);
+        row += r > 1.02 ? ' ' : (r > 0.9 ? (Math.random()<.5?'▒':'░') : (Math.random()<.5?'▓':'█'));
+      }
+      g.push(row);
+    }
+    /* 挖出两只眼睛 */
+    const eye = (cy, cx) => {
+      for (let y=cy-2;y<=cy+2;y++) for (let x=cx-5;x<=cx+5;x++){
+        if (y<0||y>=H2||x<0||x>=W2) continue;
+        const dy=(y-cy)/2.2, dx=(x-cx)/5.2;
+        const inside = dx*dx+dy*dy < 1;
+        let ch = ' ';
+        if (inside) ch = (Math.abs(dy) < .45 && Math.abs(dx) < .4) ? '●' : ' ';
+        g[y] = g[y].slice(0,x) + ch + g[y].slice(x+1);
+      }
+    };
+    eye(7, 14); eye(7, 32);
+    /* 嘴：一条向下弯的裂缝 */
+    for (let x=16;x<=30;x++){
+      const y = 15 + Math.round(Math.sin((x-16)/14*Math.PI)*1.6);
+      g[y] = g[y].slice(0,x) + '▄' + g[y].slice(x+1);
+    }
+    $('faceart').textContent = g.join('\n');
+  }
+  function buildEye(px, py){
+    /* 一只更大的字符眼，瞳孔位置随鼠标变化 */
+    const W3 = 58, H3 = 22;
+    const cx = W3/2, cy = H3/2;
+    const g = [];
+    for (let y=0;y<H3;y++){
+      let row='';
+      for (let x=0;x<W3;x++){
+        const ex = (x-cx)/ (W3/2), ey = (y-cy)/(H3/2);
+        const d = Math.sqrt(ex*ex + ey*ey);
+        let ch = ' ';
+        if (d < 1) {
+          if (d > .93) ch = '▓';
+          else if (d > .86) ch = '▒';
+          else ch = '░';
+        }
+        row += ch;
+      }
+      g.push(row);
+    }
+    /* 虹膜 + 瞳孔 */
+    const ix = cx + px*9, iy = cy + py*4.2;
+    for (let y=0;y<H3;y++){
+      let row = '';
+      for (let x=0;x<W3;x++){
+        const dx = (x-ix)/6.4, dy = (y-iy)/6.4;
+        const r = Math.sqrt(dx*dx+dy*dy);
+        let ch = g[y][x];
+        if (r < .45) ch = '●';
+        else if (r < .8 && ch === '░') ch = '◉';
+        else if (r < 1 && (ch === '░' || ch === '▒')) ch = '▒';
+        row += ch;
+      }
+      g[y] = row;
+    }
+    $('eyeart').textContent = g.join('\n');
+  }
+  buildFace(); buildEye(0,0);
+  setTimeout(()=>{ $('faceart').classList.add('on'); document.body.classList.add('hush'); }, 9000);   /* 9 秒后脸浮出来，背景屏息 */
+  setTimeout(()=>{ $('eyeart').classList.add('on'); document.body.classList.add('deep'); }, 22000);   /* 22 秒后睁眼，背景再退一层 */
+  setInterval(()=>{                                             /* 偶尔眨眼 */
+    const e = $('eyeart'); if (!e.classList.contains('on')) return;
+    e.classList.add('blink'); setTimeout(()=>e.classList.remove('blink'), 110);
+  }, 7000);
+
+  let mx = 0, my = 0, pending = false;
+  addEventListener('mousemove', e => {
+    mx = (e.clientX / innerWidth) * 2 - 1;
+    my = (e.clientY / innerHeight) * 2 - 1;
+    if (pending) return;
+    pending = true;
+    setTimeout(()=>{ pending = false; if ($('eyeart').classList.contains('on')) buildEye(mx, my); }, 90);
+  }, { passive:true });
+
+  /* ---------- 7. 突发撕裂 / 抖动（随时间变频繁） ---------- */
+  const tear = $('tear');
+  function burst(){
+    tear.classList.remove('on'); void tear.offsetWidth; tear.classList.add('on');
+    document.body.classList.add('shake');
+    setTimeout(()=>document.body.classList.remove('shake'), 430);
+    if (audioOn) blip(0.06, 60);
+  }
+  function loopBurst(){
+    burst();
+    const grow = Math.min(sec/120, 1);              /* 待得越久越频繁 */
+    setTimeout(loopBurst, 9000 - grow*6000 + Math.random()*5000);
+  }
+  setTimeout(loopBurst, 6000);
+
+  /* ---------- 8. 标题被改掉（切走再回来更明显） ---------- */
+  const TITLES = ['你 不 该 在 这 里','别 走','4 0 4 · 4 0 4','我 还 在','你 在 哪','回 来'];
+  let ti = 0;
+  const titleTimer = setInterval(()=>{
+    document.title = TITLES[ti++ % TITLES.length];
+  }, 5200);
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) {
+      document.title = '你 回 来 了';
+      whisper();
+      setTimeout(()=>{ document.title = TITLES[ti++ % TITLES.length]; }, 2600);
+    }
+  });
+
+  /* ---------- 9. 死亡回归按钮：变得不情愿，但永远能按 ---------- */
+  const back = $('backBtn');
+  const LABELS = ['☠ 死 亡 回 归 ☠','你 确 定 吗','回 去 也 没 用','他 会 跟 着 你','再 按 一 次','☠ 死 亡 回 归 ☠'];
+  let bi = 0, hovering = false;
+  back.addEventListener('mouseenter', () => { hovering = true; });
+  back.addEventListener('mouseleave', () => { hovering = false; back.textContent = '☠ 死 亡 回 归 ☠'; });
+  setInterval(()=>{
+    if (!hovering) return;
+    back.textContent = LABELS[bi++ % LABELS.length];
+    back.style.transform = 'translateX(-50%) skewX(-4deg) rotate(-1deg) translate(' + (Math.random()*6-3).toFixed(1) + 'px,' + (Math.random()*4-2).toFixed(1) + 'px)';
+  }, 420);
+  back.addEventListener('click', e => {
+    e.preventDefault();
+    back.textContent = '正 在 放 你 走 …';
+    const flash = document.createElement('div');
+    flash.style.cssText = 'position:fixed;inset:0;background:#000;z-index:99;opacity:0;transition:opacity .25s';
+    document.body.appendChild(flash);
+    requestAnimationFrame(()=>{ flash.style.opacity = '1'; });
+    if (audioOn) blip(0.5, 40);
+    setTimeout(()=>{ location.href = '/'; }, 420);
+  });
+
+  /* ---------- 10. 可选声音（默认关；必须用户点一下才允许播放） ---------- */
+  let audioOn = false, actx = null, drone = null, droneGain = null, beatTimer = null;
+  function blip(vol, freq){
+    if (!actx) return;
+    const o = actx.createOscillator(), g = actx.createGain();
+    o.type = 'sine'; o.frequency.value = freq;
+    g.gain.setValueAtTime(0.0001, actx.currentTime);
+    g.gain.exponentialRampToValueAtTime(vol, actx.currentTime + 0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001, actx.currentTime + 0.5);
+    o.connect(g).connect(actx.destination); o.start(); o.stop(actx.currentTime + 0.55);
+  }
+  function noiseBurst(){
+    if (!actx) return;
+    const len = actx.sampleRate * 1.6;
+    const buf = actx.createBuffer(1, len, actx.sampleRate);
+    const d = buf.getChannelData(0);
+    for (let i=0;i<len;i++) d[i] = (Math.random()*2-1) * Math.pow(1 - i/len, 2.2);
+    const s = actx.createBufferSource(); s.buffer = buf;
+    const f = actx.createBiquadFilter(); f.type='bandpass'; f.frequency.value = 900; f.Q.value = .8;
+    const g = actx.createGain(); g.gain.value = 0.05;
+    s.connect(f).connect(g).connect(actx.destination); s.start();
+  }
+  function heartbeat(){
+    if (!audioOn || !actx) return;
+    blip(0.16, 52);
+    setTimeout(()=>blip(0.1, 44), 190);
+    /* 越待越快地跳 */
+    const interval = Math.max(520, 1150 - sec*4);
+    beatTimer = setTimeout(heartbeat, interval);
+  }
+  $('snd').addEventListener('click', () => {
+    audioOn = !audioOn;
+    const btn = $('snd');
+    if (audioOn) {
+      try {
+        actx = actx || new (window.AudioContext || window.webkitAudioContext)();
+        if (actx.state === 'suspended') actx.resume();
+        drone = actx.createOscillator(); droneGain = actx.createGain();
+        drone.type = 'sawtooth'; drone.frequency.value = 36;
+        droneGain.gain.value = 0.035;
+        const lp = actx.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value = 180;
+        drone.connect(lp).connect(droneGain).connect(actx.destination);
+        drone.start();
+        heartbeat();
+        setInterval(()=>{ if (audioOn) noiseBurst(); }, 7000);
+      } catch(e) { audioOn = false; btn.textContent = '🔇 声音不可用'; return; }
+      btn.textContent = '🔊 它 在 说 话';
+    } else {
+      try { if (drone) drone.stop(); } catch(e){}
+      clearTimeout(beatTimer);
+      btn.textContent = '🔇 它 不 说 了';
+    }
+  });
+
+  /* ---------- 11. 停留 90 秒后：所有文字开始轻微错位（像被泡烂） ---------- */
+  setTimeout(()=>{
+    document.querySelectorAll('.rule,.repeat,.sick,.err').forEach(el=>{
+      el.style.textShadow = '0 0 6px #900, 1px 0 0 #400, -1px 0 0 #100';
+      el.style.transition = 'text-shadow 3s';
+    });
+  }, 90000);
+})();
+</script>
+</body>
+</html>

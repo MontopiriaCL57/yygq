@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<rect width="512" height="512" fill="#0a0a12"/>
+<path d="M256 62 L190 158 L214 168 L256 102 L298 168 L322 158 Z" fill="#ffd700"/>
+<rect x="246" y="96" width="20" height="30" fill="#ffd700"/>
+<path d="M256 116 C196 116 158 160 154 214 L148 264 L178 302 L206 320 L256 334 L306 320 L334 302 L364 264 L358 214 C354 160 316 116 256 116 Z" fill="#00ffd5"/>
+<path d="M146 226 L178 226 L178 242 L146 242 Z" fill="#ff00e5"/>
+<path d="M334 226 L366 226 L366 242 L334 242 Z" fill="#ff00e5"/>
+<path d="M188 236 L324 236 L306 318 L256 332 L206 318 Z" fill="#0a0a12"/>
+<path d="M200 256 L248 242 L252 262 L202 274 Z" fill="#00ffd5"/>
+<path d="M312 256 L264 242 L260 262 L310 274 Z" fill="#00ffd5"/>
+<path d="M228 280 L256 304 L284 280 L284 296 L256 322 L228 296 Z" fill="#ffd700"/>
+<path d="M224 334 L288 334 L300 400 L212 400 Z" fill="#00ffd5"/>
+<path d="M204 400 L308 400" stroke="#0a0a12" stroke-width="10" stroke-linecap="round"/>
+<path d="M150 268 L118 292 L136 318" fill="none" stroke="#00ffd5" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M362 268 L394 292 L376 318" fill="none" stroke="#00ffd5" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M96 128 L96 160 M80 144 L112 144" stroke="#ff00e5" stroke-width="7" stroke-linecap="round"/>
+<path d="M428 372 L428 404 M412 388 L444 388" stroke="#ff00e5" stroke-width="7" stroke-linecap="round"/>
+</svg>

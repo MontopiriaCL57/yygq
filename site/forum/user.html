@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>代表档案 · 花果山会议</title>
+<link rel="stylesheet" href="/assets/theme.css">
+<style>
+  .prof-h{ display:flex; gap:16px; align-items:center; flex-wrap:wrap; }
+  .avatar{ width:58px; height:58px; border-radius:50%; border:1px solid var(--line2); display:flex;
+    align-items:center; justify-content:center; font-size:1.5rem; color:var(--neon2);
+    background:rgba(255,0,229,.07); box-shadow:0 0 18px rgba(255,0,229,.25); flex:0 0 auto; }
+  .stat-row{ display:flex; gap:22px; flex-wrap:wrap; margin-top:10px; }
+  .stat-row div{ font-size:.78rem; color:var(--dim); }
+  .stat-row b{ color:var(--gold); font-size:1.1rem; font-weight:400; }
+  .tabs{ display:flex; gap:6px; margin:18px 0 12px; flex-wrap:wrap; }
+  .tabs span{ padding:6px 15px; border:1px solid var(--line); border-radius:4px; font-size:.8rem;
+    color:var(--neon); cursor:pointer; letter-spacing:.08em; }
+  .tabs span.on{ color:#fff; background:rgba(0,255,213,.18); box-shadow:0 0 12px rgba(0,255,213,.3); }
+  .cmt-line{ border:1px solid rgba(0,255,213,.2); border-radius:5px; padding:10px 12px; margin-bottom:8px;
+    background:rgba(0,255,213,.03); font-size:.84rem; line-height:1.8; color:#cff; word-break:break-word; }
+  .cmt-line .from{ font-size:.7rem; color:var(--dim); margin-top:6px; display:block; }
+  .prof-bio{ font-size:.86rem; line-height:1.95; color:#cdeef7; white-space:pre-wrap; word-break:break-word; }
+  .prof-h{ align-items:flex-start; }
+
+  /* ── 窄屏：档案头与标签页 ── */
+  @media (max-width:680px){
+    .prof-h{ gap:12px; }
+    .avatar{ width:48px; height:48px; font-size:1.2rem; }
+    .stat-row{ gap:16px; }
+    .tabs{ overflow-x:auto; -webkit-overflow-scrolling:touch; flex-wrap:nowrap; padding-bottom:4px; }
+    .tabs span{ flex:0 0 auto; padding:9px 14px; }
+    .cmt-line{ font-size:.82rem; }
+  }
+</style>
+</head>
+<body>
+<canvas id="bg"></canvas>
+<div id="nav"></div>
+
+<div class="page narrow">
+  <div id="head"><div class="loading">加载中</div></div>
+  <div class="tabs" id="tabs" style="display:none">
+    <span data-t="posts" class="on">发表的议题</span>
+    <span data-t="comments">发表的发言</span>
+  </div>
+  <div id="body"></div>
+  <div class="pager" id="pager"></div>
+</div>
+
+<footer>Copyright © yygq面馆 · <b>港ICP备00000001号</b></footer>
+
+<script src="/assets/common.js"></script>
+<script src="/assets/forum.js"></script>
+<script>
+YQ.boot('forum');
+var name = YQ.qs('name','');
+var tab = 'posts', page = 1;
+
+function load(){
+  if(!name){ YQ.empty('#head','没有指定代表','用法：user?name=某某','❓'); return; }
+  YQ.api('/api/forum/users/' + encodeURIComponent(name) + '?page=' + page + '&size=10').then(function(r){
+    if (YQ.forum.isDown(r)) { YQ.forum.serverHint('#head'); return; }
+    if (!r.ok) { YQ.empty('#head', r.msg || '查无此代表', '也许他还没注册', '👤'); document.getElementById('tabs').style.display='none'; return; }
+    var d = r.data;
+    document.title = d.name + ' 的代表档案 · 花果山会议';
+    var isMe = (YQ.user && YQ.user === d.name);
+    var av = d.avatar
+      ? '<img class="avatar-lg" src="' + YQ.esc(d.avatar) + '" alt="">'
+      : '<span class="avatar-lg avatar-fb">' + YQ.esc(d.name.slice(0,1)) + '</span>';
+    document.getElementById('head').innerHTML =
+      '<div class="panel"><div class="prof-h">' + av +
+      '<div class="grow"><h1 class="title" style="font-size:1.5rem;margin:0">' + YQ.esc(d.name) + '</h1>' +
+      '<div class="muted mt8">代表自 ' + YQ.esc((d.created||'').slice(0,10)) + ' 起出席会议' + (d.uid ? ' · UID ' + d.uid : '') + '</div>' +
+      '<div class="stat-row"><div>议题 <b>' + (d.post_count|0) + '</b></div>' +
+      '<div>发言 <b>' + (d.comment_count|0) + '</b></div></div>' +
+      (isMe ? '<div class="mt16"><a class="btn ghost sm" href="/forum/settings" style="margin:0">⚙ 编辑资料</a></div>' : '') +
+      '</div></div>' +
+      (d.bio ? '<div class="hr"></div><div class="prof-bio">' + YQ.escBr(d.bio) + '</div>' : '') +
+      '</div>';
+    document.getElementById('tabs').style.display = 'flex';
+    render(d);
+  });
+}
+function render(d){
+  var el = document.getElementById('body');
+  if (tab === 'posts') {
+    el.innerHTML = (d.posts && d.posts.length)
+      ? '<div class="list">' + d.posts.map(function(p){
+          return '<a class="item" href="/forum/thread?id=' + p.id + '"><div class="t">' + YQ.esc(p.title) + '</div>' +
+            '<div class="meta"><span>' + YQ.esc(YQ.fmtTime(p.created)) + '</span><span>发言 <b>' + (p.comments|0) + '</b></span></div></a>';
+        }).join('') + '</div>'
+      : '<div class="empty"><span class="big">📄</span>这位代表还没有发表过议题</div>';
+  } else {
+    el.innerHTML = (d.comments && d.comments.length)
+      ? d.comments.map(function(c){
+          return '<div class="cmt-line">' + YQ.escBr(c.body) +
+            '<span class="from">' + YQ.esc(YQ.fmtTime(c.created)) + ' · 发言于 ' +
+            (c.post_id ? '<a href="/forum/thread?id=' + c.post_id + '">' + YQ.esc(c.title || ('议题 #' + c.post_id)) + '</a>' : '（议题已删）') +
+            '</span></div>';
+        }).join('')
+      : '<div class="empty"><span class="big">💬</span>这位代表还没有发过言</div>';
+  }
+  YQ.forum.pager('#pager', d.page, tab === 'posts' ? d.post_count : d.comment_count, d.size, function(np){ page = np; load(); window.scrollTo({top:0,behavior:'smooth'}); });
+}
+YQ.$$('#tabs span').forEach(function(s){
+  s.onclick = function(){
+    YQ.$$('#tabs span').forEach(function(x){ x.classList.remove('on'); });
+    s.classList.add('on'); tab = s.getAttribute('data-t'); page = 1; load();
+  };
+});
+YQ.me(true).then(load);
+</script>
+</body>
+</html>

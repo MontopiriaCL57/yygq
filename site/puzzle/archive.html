@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>往期归档 · 每日谜题</title>
+<link rel="stylesheet" href="/assets/theme.css">
+<style>
+  .arc{ display:grid; grid-template-columns:repeat(auto-fill,minmax(160px,1fr)); gap:10px; }
+  .arc a{ display:block; border:1px solid var(--line); border-radius:6px; padding:12px; background:var(--panel); transition:.24s; }
+  .arc a:hover{ border-color:var(--neon2); box-shadow:0 0 16px rgba(255,0,229,.22); transform:translateY(-3px); }
+  .arc .d{ color:#fff; font-size:.9rem; letter-spacing:.06em; }
+  .arc .w{ color:var(--dim); font-size:.68rem; margin-top:4px; }
+  .arc .p{ color:var(--gold); font-size:.7rem; margin-top:6px; }
+  .arc a.today{ border-color:rgba(255,215,0,.6); box-shadow:0 0 16px rgba(255,215,0,.15); }
+  .arc a.played{ border-color:var(--line2); }
+  .tagline{ font-size:.62rem; color:var(--neon); letter-spacing:.04em; margin-top:5px; }
+
+  /* ── 窄屏：归档网格 ── */
+  @media (max-width:680px){
+    .arc{ grid-template-columns:repeat(auto-fill,minmax(140px,1fr)); gap:8px; }
+    .arc a{ padding:10px; }
+    .arc .d{ font-size:.84rem; }
+    .row.aic{ gap:8px; }
+  }
+</style>
+</head>
+<body>
+<canvas id="bg"></canvas>
+<div id="nav"></div>
+
+<div class="page">
+  <h1 class="title">📅 往期归档</h1>
+  <div class="sub mb16">任意一天都能回头再玩；往期成绩不计入当日榜</div>
+  <div class="row aic mb16" style="gap:10px">
+    <span class="muted">显示最近</span>
+    <select class="sel fix" id="days" style="width:auto">
+      <option value="14">14 天</option>
+      <option value="30" selected>30 天</option>
+      <option value="60">60 天</option>
+      <option value="120">120 天</option>
+    </select>
+  </div>
+  <div id="list"><div class="loading">加载中</div></div>
+</div>
+
+<footer>Copyright © yygq面馆 · <b>港ICP备00000001号</b></footer>
+
+<script src="/assets/common.js"></script>
+<script src="/assets/puzzle-engine.js"></script>
+<script>
+YQ.boot('puzzle');
+var P = YQ.puzzle;
+var LABEL = { attr:'属性', image:'图像', draw:'绘画', riddle:'文字' };
+var myProgress = P.local.all();
+
+function render(days, players){
+  var today = P.today();
+  var html = days.map(function(d){
+    var items = (myProgress[d.day] && myProgress[d.day].items) || [];
+    var solved = items.filter(function(x){ return x.solved; }).length;
+    var types = (d.titles || []).map(function(t){ return LABEL[t] || t; }).join(' + ');
+    return '<a class="' + (d.day === today ? 'today ' : '') + (solved ? 'played' : '') + '" href="/puzzle/?d=' + d.day + '">' +
+      '<div class="d">' + d.day + (d.day === today ? ' · 今日' : '') + '</div>' +
+      '<div class="tagline">' + YQ.esc(types) + '</div>' +
+      (players ? '<div class="p">' + (d.players || 0) + ' 人参与</div>' : '') +
+      '<div class="w">' + (solved ? ('我答对 ' + solved + ' 题') : '未挑战') + '</div></a>';
+  }).join('');
+  document.getElementById('list').innerHTML = '<div class="arc">' + html + '</div>';
+}
+
+function load(){
+  var n = parseInt(document.getElementById('days').value, 10) || 30;
+  YQ.loading('#list');
+  /* 先本地算出日期列表（不依赖后端），再用后端数据补充参与人数 */
+  var local = [];
+  var di = P.dayIndex(P.today());
+  for (var i = 0; i < n; i++) local.push({ day: P.dateFromIndex(di - i), titles: [], players: 0 });
+
+  YQ.puzzle.load().then(function(bank){
+    local.forEach(function(d){
+      d.titles = P.pickDaily(bank, d.day).map(function(q){ return q.type; });
+    });
+    render(local, false);
+  }).catch(function(){});
+
+  YQ.api('/api/puzzle/archive?days=' + n).then(function(r){
+    if (!r.ok) return;                       /* 后端没上线就用本地版本，不报错 */
+    var arr = (r.data.days || []).slice().sort(function(a,b){ return a.day < b.day ? 1 : -1; });
+    render(arr, true);
+  });
+}
+document.getElementById('days').onchange = load;
+YQ.me(true).then(load);
+</script>
+</body>
+</html>

@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#0a0620">
+<meta name="description" content="yygq面馆 · 全上海最权威的学生游戏体育竞技项目综合论坛：花果山会议论坛、每日谜题、每日打卡、捐*榜。">
+<title>yygq面馆 · 全上海最权威的学生游戏体育竞技项目综合论坛</title>
+<link rel="stylesheet" href="/assets/theme.css">
+<style>
+  /* ============================================================
+     主页专属：霓虹故障标题 / 合成波落日 / 跑马灯 / 标签矩阵 / 装饰进度条
+     性能：全部为静态渐变 + 单个遮罩；持续动画只有标题那处（合成层）
+     ============================================================ */
+  .wrap{ position:relative; z-index:1; padding:30px 16px 0;
+    display:flex; flex-direction:column; align-items:center; text-align:center; }
+
+  .hero{ position:relative; width:100%; display:flex; flex-direction:column; align-items:center; padding-top:6px; }
+  /* 合成波落日：锚在地平线上、只露上半，标题不再压着亮圆（PC 端糊掉就是因为原来它顶在标题后面） */
+  .horizon-wrap{ position:relative; width:100%; margin-top:14px; }
+  .sun{
+    position:absolute; left:50%; bottom:0; transform:translate(-50%,44%);
+    width:clamp(180px,34vw,320px); aspect-ratio:1; border-radius:50%;
+    background:linear-gradient(180deg,#ffe066 0%,#ff8a00 38%,#ff00e5 72%,#8b5cff 100%);
+    -webkit-mask-image:repeating-linear-gradient(180deg,#000 0 7px,transparent 7px 11px);
+    mask-image:repeating-linear-gradient(180deg,#000 0 7px,transparent 7px 11px);
+    opacity:.3; pointer-events:none; z-index:0;
+    box-shadow:0 0 80px rgba(255,0,229,.45);
+  }
+  .horizon{
+    position:relative; z-index:1;
+    width:min(96%,1100px); height:2px; margin:0 auto;
+    background:linear-gradient(90deg,transparent,var(--neon),#fff,var(--neon2),transparent);
+    box-shadow:0 0 18px var(--neon),0 0 42px rgba(255,0,229,.7);
+  }
+
+  .glitch{
+    font-size:clamp(2.4rem,11.5vw,7.5rem); font-weight:900; letter-spacing:.08em;
+    position:relative; color:#fff; line-height:1.05;
+    /* 只保留紧贴字形的三层光：像素字才不会糊成一坨 */
+    text-shadow:0 0 1px #fff, 0 0 7px rgba(0,255,213,.9), 0 0 16px rgba(255,0,229,.5);
+    -webkit-font-smoothing:none; font-smooth:never;
+    animation:flicker 4.5s infinite;
+  }
+  .glitch::before,.glitch::after{
+    content:attr(data-text); position:absolute; left:0; top:0; width:100%; overflow:hidden;
+  }
+  /* 故障层：平时完全隐藏，只在 3.6s 周期里闪 2 次细带（≈6% 高），保证像素字始终清晰 */
+  .glitch::before,.glitch::after{ opacity:0; }
+  .glitch::before{ color:var(--neon2); text-shadow:0 0 6px var(--neon2); animation:gl1 3.6s infinite; }
+  .glitch::after{ color:var(--neon); text-shadow:0 0 6px var(--neon); animation:gl2 5.1s infinite; }
+  @keyframes gl1{
+    0%,86%{ opacity:0; clip-path:inset(40% 0 60% 0); transform:translateX(0) }
+    88%{ opacity:1; clip-path:inset(18% 0 76% 0); transform:translateX(-3px) }
+    92%{ opacity:1; clip-path:inset(64% 0 30% 0); transform:translateX(3px) }
+    95%{ opacity:0; clip-path:inset(40% 0 60% 0); transform:translateX(0) }
+    100%{ opacity:0 }
+  }
+  @keyframes gl2{
+    0%,80%{ opacity:0; clip-path:inset(50% 0 44% 0); transform:translateX(0) }
+    83%{ opacity:1; clip-path:inset(30% 0 64% 0); transform:translateX(3px) }
+    87%{ opacity:1; clip-path:inset(72% 0 22% 0); transform:translateX(-3px) }
+    90%{ opacity:0; clip-path:inset(50% 0 44% 0); transform:translateX(0) }
+    100%{ opacity:0 }
+  }
+  /* 闪一下可以，但别把字闪没了（原来最低到 0.34，PC 上看就是"糊"） */
+  @keyframes flicker{ 0%,100%{opacity:1} 92%{opacity:1} 93%{opacity:.8} 94%{opacity:1} 96%{opacity:.6} 97%{opacity:1} }
+
+  .hero-sub{ margin-top:14px; font-size:clamp(.82rem,2.3vw,1.25rem); letter-spacing:.2em; color:#a8f4ff;
+    min-height:2em; text-shadow:0 0 10px rgba(0,255,213,.75); }
+  .hero-sub .cursor{ display:inline-block; animation:blink .7s infinite; color:var(--neon); }
+
+  .marquee{
+    margin:24px auto 6px; width:min(94%,920px); overflow:hidden; border-radius:8px;
+    border:1px solid rgba(0,255,213,.42); background:linear-gradient(90deg, rgba(0,255,213,.08), rgba(255,0,229,.08));
+    padding:9px 0; box-shadow:0 0 20px rgba(0,255,213,.18) inset;
+  }
+  .marquee{ position:relative; overflow:hidden; }
+  .marquee::before,.marquee::after{                 /* 两端渐隐，滚动更自然 */
+    content:''; position:absolute; top:0; bottom:0; width:48px; z-index:2; pointer-events:none; }
+  .marquee::before{ left:0; background:linear-gradient(90deg, rgba(6,4,18,.95), transparent); }
+  .marquee::after{ right:0; background:linear-gradient(270deg, rgba(6,4,18,.95), transparent); }
+  .mq-track{ display:inline-flex; white-space:nowrap; animation:scroll 26s linear infinite; will-change:transform; }
+  .mq-track span{ display:inline-block; color:var(--gold); font-size:.85rem; letter-spacing:.12em;
+    padding-right:56px; text-shadow:0 0 10px rgba(255,215,0,.8); }
+  @keyframes scroll{ from{transform:translateX(0)} to{transform:translateX(-50%)} }
+
+  /* 标签矩阵：每个标签都是真外链 */
+  .tags-wrap{ width:min(96%,1040px); margin:22px auto 6px; }
+  .tags-head{ display:flex; align-items:center; justify-content:center; gap:10px; flex-wrap:wrap;
+    font-size:.76rem; letter-spacing:.18em; color:var(--gold); text-shadow:0 0 10px rgba(255,215,0,.5); margin-bottom:10px; }
+  .tags-head i{ font-style:normal; color:var(--dim2); font-size:.68rem; letter-spacing:.08em; }
+  .tags{ display:flex; flex-wrap:wrap; gap:7px; justify-content:center; padding:14px 12px;
+    border:1px solid rgba(139,92,255,.28); border-radius:12px;
+    background:linear-gradient(160deg, rgba(12,8,34,.72), rgba(6,4,20,.62));
+    box-shadow:0 0 26px rgba(139,92,255,.14) inset; }
+  .tags .t{
+    display:inline-block; padding:6px 13px; border-radius:18px; font-size:.78rem;
+    color:#8ff6ff; border:1px solid rgba(0,255,255,.42); background:rgba(0,255,255,.07);
+    text-shadow:0 0 6px rgba(0,255,255,.55); transition:transform .18s, box-shadow .18s, background .18s, color .18s;
+    -webkit-tap-highlight-color:transparent;
+  }
+  .tags .t::after{ content:'↗'; font-size:.62em; margin-left:4px; opacity:.35; }
+  .tags .t:hover{ background:rgba(0,255,255,.24); color:#fff; box-shadow:0 0 16px rgba(0,255,255,.7); transform:translateY(-3px) scale(1.06); }
+  .tags .t:hover::after{ opacity:1; }
+  .tags .t.gold{ color:#ffe98a; border-color:rgba(255,215,0,.48); background:rgba(255,215,0,.07); text-shadow:0 0 6px rgba(255,215,0,.6); }
+  .tags .t.gold:hover{ background:rgba(255,215,0,.24); color:#fff; box-shadow:0 0 16px rgba(255,215,0,.7); }
+
+  .bars{ width:min(92%,620px); margin:22px auto 4px; }
+  .bar{ margin:12px 0; text-align:left; }
+  .bar .lb{ font-size:.8rem; color:#a9c9d4; letter-spacing:.15em; margin-bottom:5px; display:flex; justify-content:space-between; }
+  .bar .lb b{ color:var(--neon); text-shadow:0 0 8px rgba(0,255,213,.7); }
+  .bar .track{ height:10px; background:rgba(255,255,255,.07); border-radius:6px; overflow:hidden;
+    border:1px solid rgba(139,92,255,.22); }
+  .bar .fill{ height:100%; width:0; border-radius:6px;
+    background:linear-gradient(90deg,var(--neon),var(--neon3),var(--neon2));
+    box-shadow:0 0 14px var(--neon); animation:fill 2.4s ease forwards; }
+  @keyframes fill{ from{width:0} }
+
+  .btns{ margin:26px 0 8px; display:flex; flex-wrap:wrap; justify-content:center; gap:12px; width:min(96%,860px); }
+  .btns .btn{ margin:0; flex:1 1 200px; min-width:0; }
+
+  /* 今日谜题卡片 */
+  .pcard{ position:relative; z-index:60; width:min(94%,740px); margin:24px auto 0; padding:18px;
+    border:1px solid rgba(255,215,0,.45); border-radius:12px;
+    background:linear-gradient(158deg, rgba(30,16,4,.72), rgba(14,4,26,.8));
+    box-shadow:0 0 26px rgba(255,215,0,.14); text-align:center; }
+  .pcard .pc-h{ font-size:clamp(.95rem,2.6vw,1.05rem); letter-spacing:.16em; color:var(--gold); text-shadow:0 0 12px rgba(255,215,0,.65); }
+  .pcard .pc-day{ color:var(--dim); font-size:.72rem; letter-spacing:.1em; margin-top:5px; }
+  .pcard .pc-q{ display:flex; gap:10px; justify-content:center; flex-wrap:wrap; margin:12px 0; }
+  .pcard .pc-q i{ font-style:normal; font-size:.76rem; padding:6px 13px; border-radius:16px;
+    border:1px solid var(--line); color:var(--neon); background:rgba(0,255,213,.08); text-shadow:0 0 8px rgba(0,255,213,.5); }
+  .pcard .pc-q i.pink{ border-color:var(--line-2); color:#ff8ae8; background:rgba(255,0,229,.08); text-shadow:0 0 8px rgba(255,0,229,.5); }
+  .pcard .pc-stat{ font-size:.78rem; color:var(--dim); letter-spacing:.08em; }
+  .pcard .pc-stat b{ color:var(--gold); }
+
+  /* 每日打卡 */
+  .ckarea{ position:relative; z-index:60; width:min(94%,740px); margin:30px auto 26px; padding:26px; text-align:center;
+    border:1px solid rgba(0,255,213,.42); border-radius:12px;
+    background:linear-gradient(158deg, rgba(8,26,32,.72), rgba(6,4,20,.82));
+    box-shadow:0 0 26px rgba(0,255,213,.14); }
+  .ck-title{ font-size:clamp(1.15rem,3.4vw,1.5rem); font-weight:900; letter-spacing:.15em; color:var(--gold);
+    text-shadow:0 0 14px rgba(255,215,0,.65); }
+  .ck-tip{ color:#6fc0cf; font-size:.76rem; letter-spacing:.06em; margin:9px 0 18px; line-height:1.9; opacity:.95; }
+  .ck-form{ display:flex; gap:10px; flex-wrap:wrap; justify-content:center; margin-bottom:15px; }
+  .ck-form input{ position:relative; z-index:61; background:rgba(3,2,12,.8); border:1px solid rgba(0,255,213,.4);
+    border-radius:8px; color:var(--neon); padding:11px 14px; font-size:.9rem; min-width:150px;
+    text-shadow:0 0 6px rgba(0,255,213,.35); }
+  .ck-form input::placeholder{ color:#3d7f8e; }
+  .ck-btn{ padding:11px 26px; font-size:.95rem; font-weight:700; letter-spacing:.2em; cursor:pointer; color:#06121a;
+    border-radius:8px; border:1px solid var(--neon);
+    background:linear-gradient(135deg,var(--neon),var(--neon3)); transition:.25s; }
+  .ck-btn:hover{ box-shadow:0 0 22px var(--neon); transform:translateY(-2px); }
+  .ck-btn:disabled{ opacity:.5; cursor:wait; }
+  .ck-result{ min-height:20px; margin-bottom:10px; }
+  .ck-line{ color:var(--neon); font-size:1.05rem; letter-spacing:.1em; text-shadow:0 0 10px var(--neon); margin:5px 0; }
+  .ck-days{ color:var(--gold); font-size:.85rem; }
+  .ck-egg{ margin:12px 0 4px; } .ck-egg img{ max-width:min(90%,360px); border-radius:8px; border:1px solid rgba(255,0,229,.55); box-shadow:0 0 24px rgba(255,0,229,.45); }
+  .ck-egg-txt{ color:#ff8ae8; font-size:.82rem; letter-spacing:.2em; text-shadow:0 0 10px rgba(255,0,229,.7); }
+
+  /* 悬浮捐*榜 */
+  .ckboard{ position:fixed; top:86px; right:16px; width:232px; max-height:70vh; z-index:99;
+    display:flex; flex-direction:column;
+    border:1px solid rgba(0,255,213,.38); border-radius:10px;
+    background:linear-gradient(160deg, rgba(8,24,30,.86), rgba(6,4,20,.86));
+    padding:14px 12px; box-shadow:0 0 24px rgba(0,255,213,.18); }
+  .ckboard h3{ color:#7ff0ff; font-size:.85rem; letter-spacing:.3em; text-align:center; margin-bottom:10px; font-weight:600; }
+  /* UC移动端修复①：列表内滚，杜绝名单溢出面板（勿回退，见 docs/UC-MOBILE-FIXES.md） */
+  .ckb-list{ flex:1 1 auto; min-height:0; overflow-y:auto; padding-right:4px; }
+  .ckb-row{ display:flex; flex-direction:column; gap:2px; min-width:0; padding:7px 8px; border-bottom:1px solid rgba(0,255,213,.1); }
+  .ckb-l1{ display:flex; align-items:center; gap:8px; font-size:.82rem; }
+  .ckb-l2{ display:flex; align-items:center; gap:6px; padding-left:28px; font-size:.68rem; white-space:nowrap; }
+  .ckb-rank{ color:var(--gold); width:20px; text-align:center; font-weight:700; }
+  .ckb-nm{ color:#c8f6ff; flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .ckb-tag{ font-size:.7rem; } .ckb-tag.hit{ color:var(--neon); } .ckb-tag.miss{ color:#4f6b74; }
+  .ckb-dy{ color:var(--gold); font-size:.72rem; }
+  .ckb-ut{ color:#4a7d8c; }
+  /* UC移动端修复②：展开/收起常驻榜单页脚（勿回退） */
+  .ckb-more{ flex:0 0 auto; text-align:center; color:var(--neon); font-size:.72rem; padding:6px; cursor:pointer; letter-spacing:.1em; border-top:1px dashed rgba(0,255,213,.22); }
+  .ckb-more:hover{ text-shadow:0 0 10px var(--neon); }
+  .ckboard.expanded{ max-height:78vh; }
+  .ckb-toggle{ position:absolute; left:0; top:50%; transform:translate(-100%,-50%); cursor:pointer; color:var(--neon);
+    font-size:1rem; line-height:1; padding:3px 4px; background:rgba(6,20,26,.9); border:1px solid rgba(0,255,213,.35);
+    border-radius:4px; z-index:2; }
+  .ckb-toggle:hover{ box-shadow:0 0 10px var(--neon); }
+  .ckboard.collapsed{ width:32px; padding:10px 4px; }
+  .ckboard.collapsed .ckb-list, .ckboard.collapsed .ckb-more{ display:none; }
+  .ckboard.collapsed h3{ writing-mode:vertical-rl; letter-spacing:.25em; font-size:.72rem; margin:0; }
+
+  /* ===== 窄屏 ===== */
+  @media (max-width:900px){
+    .btns .btn{ flex:1 1 100%; }
+  }
+  @media (max-width:680px){
+    .wrap{ padding:16px 12px 0; }
+    .horizon-wrap{ margin-top:10px; }
+    .sun{ width:clamp(140px,44vw,220px); opacity:.36; }
+    .glitch{ font-size:clamp(1.9rem,12vw,2.9rem); letter-spacing:.05em; }
+    /* 手机保留故障动画（用户明确要求动态感），只是字号更小、重绘面积更小 */
+    .hero-sub{ font-size:.76rem; letter-spacing:.06em; min-height:2.4em; }
+    .marquee{ margin:16px auto 4px; } .mq-track span{ font-size:.7rem; padding-right:40px; }
+    .tags-wrap{ margin:16px auto 4px; }
+    .tags{ gap:6px; padding:11px 9px; border-radius:10px; justify-content:flex-start; }
+    .tags .t{ font-size:.72rem; padding:7px 11px; border-radius:15px; }
+    .tags .t::after{ display:none; }               /* 手机省掉箭头，省宽度 */
+    .bars{ width:100%; margin:16px auto 0; } .bar .lb{ font-size:.74rem; }
+    .btns{ gap:10px; margin:20px 0 4px; }
+    .pcard{ padding:15px 13px; margin-top:18px; }
+    .pcard .pc-q i{ font-size:.72rem; padding:5px 10px; }
+    .ckarea{ padding:18px 14px; margin:22px auto 20px; }
+    .ck-tip{ font-size:.72rem; }
+    .ck-form{ flex-direction:column; gap:9px; } .ck-form input{ width:100%; min-width:0; font-size:16px; }
+    .ck-btn{ width:100%; padding:13px; }
+    .ck-egg img{ max-width:100%; }
+    /* 悬浮榜：沿用原方案 —— 右上角常驻、默认展开、点左侧箭头收起 */
+    /* 手机端导航是两行，榜单往下让开一点，别压住导航；宽度也收一点少挡正文 */
+    .ckboard{ top:102px; right:5px; width:min(206px,62vw); max-height:34vh; padding:9px 7px; }
+    .ckboard.expanded{ max-height:56vh; }
+    .ckb-l2{ padding-left:0; font-size:.6rem; gap:4px; }
+    .ckb-row{ font-size:.74rem; padding:6px; }
+    .ckb-toggle{ display:block; font-size:.9rem; padding:3px 4px; }
+  }
+</style>
+</head>
+<body>
+<canvas id="bg"></canvas>
+<div id="nav"></div>
+
+<div class="wrap">
+  <div class="hero">
+    <h1 class="glitch" data-text="yygq面馆">yygq面馆</h1>
+    <div class="hero-sub"><span id="type"></span><span class="cursor">|</span></div>
+    <div class="horizon-wrap" aria-hidden="true">
+      <div class="sun"></div>
+      <div class="horizon"></div>
+    </div>
+  </div>
+
+  <div class="marquee" aria-label="面馆口号">
+    <div class="mq-track">
+      <span>★ 全上海最权威 ★ 全球排名 No.1 ★ 学生竞技殿堂 ★ 含金量 999% ★ 入馆即巅峰 ★ 面馆出品 必属精品 ★ 权威认证 ★ 标签可点，直达各项目百科 ★</span>
+      <span aria-hidden="true">★ 全上海最权威 ★ 全球排名 No.1 ★ 学生竞技殿堂 ★ 含金量 999% ★ 入馆即巅峰 ★ 面馆出品 必属精品 ★ 权威认证 ★ 标签可点，直达各项目百科 ★</span>
+    </div>
+  </div>
+
+  <div class="tags-wrap">
+    <div class="tags-head">◈ 项目矩阵 ◈ <i>点标签直达对应百科 / 官网</i></div>
+    <div class="tags" id="tags"></div>
+  </div>
+
+  <div class="bars">
+    <div class="bar"><div class="lb">权威指数 <b>999%</b></div><div class="track"><div class="fill" style="animation-delay:.2s;width:99%"></div></div></div>
+    <div class="bar"><div class="lb">含金量加载中 <b>∞</b></div><div class="track"><div class="fill" style="animation-delay:.6s;width:87%"></div></div></div>
+    <div class="bar"><div class="lb">逼格指数 <b>MAX</b></div><div class="track"><div class="fill" style="animation-delay:1s;width:96%"></div></div></div>
+    <div class="bar"><div class="lb">面馆热度 <b>9999℃</b></div><div class="track"><div class="fill" style="animation-delay:1.4s;width:88%"></div></div></div>
+  </div>
+
+  <div class="btns">
+    <a class="btn alt" href="/forum/">🐒 花果山会议</a>
+    <a class="btn gold" href="/puzzle/">🧩 每日谜题</a>
+    <a class="btn" href="/xiaoheishu">📝 进入留言板</a>
+    <a class="btn" href="/cs2bp/">🎯 CS2 选边工具</a>
+  </div>
+</div>
+
+<!-- 今日谜题小卡片 -->
+<div class="pcard" id="pcard">
+  <div class="pc-h">── 今日谜题 ──</div>
+  <div class="pc-day" id="pcDay">…</div>
+  <div class="pc-q" id="pcQ"></div>
+  <div class="pc-stat" id="pcStat">统计加载中…</div>
+  <div class="mt16"><a class="btn gold sm" href="/puzzle/">⚡ 立即挑战</a>
+    <a class="btn ghost sm" href="/puzzle/leaderboard">🏆 看榜单</a></div>
+</div>
+
+<!-- 每日打卡 -->
+<div class="ckarea">
+  <h2 class="ck-title">每日打卡</h2>
+  <p class="ck-tip">首次打卡：输口令 + 封号（绑定）。<br>绑定后：只需输口令回车即可直接打卡。<br>口令别太长、别跟人重复。</p>
+  <div class="ck-form">
+    <input id="ckCard" type="text" maxlength="40" placeholder="打卡口令" autocomplete="off">
+    <input id="ckName" type="text" maxlength="20" placeholder="捐*榜封号（仅首次需要）" autocomplete="off">
+    <button class="ck-btn" id="ckBtn" onclick="ckDo()">⛩ 打卡</button>
+  </div>
+  <div id="ckResult" class="ck-result"></div>
+</div>
+
+<!-- 捐*榜（悬浮，一直可见） -->
+<div class="ckboard" id="ckboard">
+  <span class="ckb-toggle" id="ckbTg" onclick="ckTogglePanel()" title="收起">›</span>
+  <h3>── 捐*榜 ──</h3>
+  <div id="ckBoard" class="ckb-list"></div>
+  <div class="ckb-more" id="ckbMore" style="display:none" onclick="ckToggle()"></div>
+</div>
+
+<footer>Copyright © yygq面馆 · <b>港ICP备00000001号</b> · 全上海最权威学生游戏体育竞技项目综合论坛</footer>
+
+<script src="/assets/common.js"></script>
+<script src="/assets/puzzle-engine.js"></script>
+<script src="/assets/tags.js"></script>
+<script>
+YQ.boot('home');
+
+/* ---------- 打字机 ---------- */
+(function(){
+  var sub='全上海最权威的学生游戏体育竞技项目综合论坛';
+  var i=0, el=document.getElementById('type');
+  (function t(){ el.textContent=sub.slice(0,++i); if(i<sub.length) setTimeout(t,70); })();
+})();
+
+/* ---------- 项目标签矩阵（外链百科/官网；rel=noopener noreferrer 保证安全） ---------- */
+(function(){
+  var box=document.getElementById('tags');
+  var FALLBACK={
+    sports:'跑步 健身 足球 篮球 排球 乒乓球 羽毛球 网球 游泳 骑行 登山 攀岩 钓鱼 台球 保龄球 滑雪 滑板 冲浪 拳击 MMA 武术 射箭 飞盘 马拉松 瑜伽 跳绳 橄榄球 棒球 高尔夫 皮划艇 帆船 铁人三项 举重 体操'.split(' '),
+    games:'CS2 瓦罗兰特 命运2 我的世界 地狱潜兵2 GTA系列 黑暗之魂 血源诅咒 只狼 艾尔登法环 空洞骑士 蔚蓝 哈迪斯 死亡细胞 泰拉瑞亚 星露谷物语 以撒的结合 奥日 茶杯头 赛博朋克2077 巫师3 荒野大镖客2 塞尔达传说 战神 最后生还者 地平线 怪物猎人 宝可梦 最终幻想 街霸 拳皇 铁拳 英雄联盟 DOTA2 王者荣耀 APEX 彩虹六号 守望先锋 使命召唤 战地 DOOM 马里奥赛车 动物森友会 任天堂明星大乱斗 文明系列 帝国时代 星际争霸 炉石传说 原神 崩坏 绝区零 明日方舟 碧蓝航线 女神异闻录 如龙系列 生化危机 寂静岭 鬼泣 尼尔 黑神话悟空 双人成行 博德之门3 幻兽帕鲁 对马岛之魂'.split(' ')
+  };
+  var T = window.YQ_TAGS;
+  var frag=document.createDocumentFragment();
+
+  function add(name, url, cls){
+    if (url) {
+      var a=document.createElement('a');
+      a.className='t'+(cls?' '+cls:'');
+      a.textContent=name; a.href=url; a.target='_blank';
+      a.rel='noopener noreferrer';                 /* 安全：不给外部页面 opener 权限 */
+      a.title=name+' · 打开百科 / 官网（新标签页）';
+      frag.appendChild(a);
+    } else {
+      var sp=document.createElement('span');
+      sp.className='t'+(cls?' '+cls:''); sp.textContent=name; frag.appendChild(sp);
+    }
+  }
+  var sports = (T && T.sports) ? T.sports : FALLBACK.sports.map(function(n){ return {n:n}; });
+  var games  = (T && T.games)  ? T.games  : FALLBACK.games.map(function(n){ return {n:n}; });
+  sports.forEach(function(x){ add(x.n, x.u, ''); });
+  games.forEach(function(x){ add(x.n, x.u, 'gold'); });
+  box.appendChild(frag);
+})();
+
+/* ---------- 打卡（沿用原有行为） ---------- */
+async function ckDo(){
+  var card=document.getElementById('ckCard').value.trim();
+  var name=document.getElementById('ckName').value.trim();
+  var btn=document.getElementById('ckBtn');
+  if(!card){ alert('先输个打卡口令'); return; }
+  btn.disabled=true; btn.textContent='⛩ 打卡中...';
+  var r=await YQ.api('/api/checkin',{method:'POST',body:{card:card,name:name}});
+  if(!r.ok || r.data.code!==0){
+    var code=r.data.code;
+    document.getElementById('ckResult').innerHTML='<div class="ck-line">'+
+      (code===4?'偷走别人名字的是坏孩子哦':(r.data.msg||'打卡失败'))+'</div>';
+    ckBoard(); btn.disabled=false; btn.textContent='⛩ 打卡'; return;
+  }
+  var d=r.data;
+  var html='<div class="ck-line">「 '+YQ.esc(d.poem)+' 」</div><div class="ck-days">累计 '+d.days+' 天</div>';
+  if(d.bind){ html+='<div class="ck-egg-txt">口令与封号已绑定，之后输口令就能直接打卡</div>'; }
+  if(d.egg){ html+='<div class="ck-egg"><img src="'+YQ.esc(d.egg)+'" alt="彩蛋"></div><div class="ck-egg-txt">✦ 隐藏彩蛋解锁 ✦</div>'; }
+  document.getElementById('ckResult').innerHTML=html;
+  document.getElementById('ckName').value='';
+  ckBoard();
+  btn.disabled=false; btn.textContent='⛩ 打卡';
+}
+var ckAll=[], ckExpanded=false;
+async function ckBoard(){
+  var r=await YQ.api('/api/checkin/board');
+  if(!r.ok){ YQ.empty('#ckBoard','榜单暂时失联','服务器开小差了','⛩'); return; }
+  ckAll=r.data.board||[]; renderBoard();
+}
+function renderBoard(){
+  var list=document.getElementById('ckBoard');
+  var more=document.getElementById('ckbMore');
+  if(!ckAll.length){ list.innerHTML='<div style="text-align:center;color:#4f6b74;padding:12px;letter-spacing:.2em;font-size:.8rem">虚位以待</div>'; more.style.display='none'; return; }
+  var show=ckExpanded?ckAll:ckAll.slice(0,5);
+  var html=show.map(function(x,i){
+    var hit=(x.today==='数据更新成功');
+    var tag='<span class="ckb-tag '+(hit?'hit':'miss')+'">('+YQ.esc(x.today||'')+')</span>';
+    var tm=x.time?'<span class="ckb-ut">'+YQ.esc(String(x.time).split(' ')[1]||'').slice(0,5)+'</span>':'';
+    return '<div class="ckb-row"><div class="ckb-l1"><span class="ckb-rank">'+(i+1)+'</span><span class="ckb-nm">'+
+      YQ.esc(x.name)+'</span><span class="ckb-dy">'+x.days+'天</span></div><div class="ckb-l2">'+tag+tm+'</div></div>';
+  }).join('');
+  list.innerHTML=html;
+  if(ckAll.length>5){ more.style.display=''; more.textContent=ckExpanded?('▲ 收起 · 共 '+ckAll.length+' 人'):('⋯ 共 '+ckAll.length+' 人 · 展开'); }
+  else{ more.style.display='none'; }
+}
+function ckToggle(){ ckExpanded=!ckExpanded; document.querySelector('.ckboard').classList.toggle('expanded',ckExpanded); renderBoard(); }
+function ckTogglePanel(){ var cb=document.getElementById('ckboard'); cb.classList.toggle('collapsed'); document.getElementById('ckbTg').textContent=cb.classList.contains('collapsed')?'‹':'›'; }
+document.getElementById('ckCard').addEventListener('keydown',function(e){ if(e.key==='Enter') ckDo(); });
+document.getElementById('ckName').addEventListener('keydown',function(e){ if(e.key==='Enter') ckDo(); });
+ckBoard();
+
+/* ---------- 悬浮榜单避让顶部导航（窄屏动态适配, UC修复③） ---------- */
+function fitCkbTop(){
+  var b=document.getElementById('ckboard'); if(!b) return;
+  var nav=document.querySelector('.topbar');
+  if(nav && window.matchMedia && window.matchMedia('(max-width:680px)').matches){
+    b.style.top=(nav.offsetHeight + 8) + 'px';
+  } else { b.style.top=''; }
+}
+fitCkbTop();
+window.addEventListener('resize', fitCkbTop);
+setTimeout(fitCkbTop, 400);
+setTimeout(fitCkbTop, 1500);
+
+/* ---------- 今日谜题小卡片 ---------- */
+(function(){
+  var day = YQ.puzzle.today();
+  document.getElementById('pcDay').textContent = day + ' · 每天 0 点换题';
+
+  /* 题型：本地按同一套确定性算法算得，后端没上线也能显示 */
+  YQ.puzzle.load().then(function(bank){
+    var qs = YQ.puzzle.pickDaily(bank, day);
+    var label = { attr:'属性对照', image:'图像线索', draw:'绘画线索', riddle:'文字谜语' };
+    document.getElementById('pcQ').innerHTML = qs.map(function(q,i){
+      return '<i class="'+(i?'pink':'')+'">'+YQ.esc(label[q.type]||q.type)+'</i>';
+    }).join('') || '<i>题库准备中</i>';
+  }).catch(function(){
+    document.getElementById('pcQ').innerHTML='<i>题库准备中</i>';
+  });
+
+  /* 参与人数：后端在线则实时，否则静态文案（不报错、不白屏） */
+  var done = YQ.puzzle.local.get(day);
+  YQ.api('/api/puzzle/stats?day='+day).then(function(r){
+    var el=document.getElementById('pcStat');
+    if(!r.ok){ el.innerHTML = done ? '你今天已挑战 <b>'+done.total+'</b> 分 · 榜单服务准备中' : '未登录也能玩 · 登录才上榜'; return; }
+    var d=r.data;
+    el.innerHTML = '今日已有 <b>'+(d.players||0)+'</b> 人参与 · 共答对 <b>'+(d.solved||0)+'</b> 题' +
+      (done ? ' · 你今天 <b>'+done.total+'</b> 分' : '');
+  });
+})();
+</script>
+</body>
+</html>

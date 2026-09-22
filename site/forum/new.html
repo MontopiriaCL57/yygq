@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>发起议题 · 花果山会议</title>
+<link rel="stylesheet" href="/assets/theme.css">
+<style>
+  .up-row{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-top:6px; }
+  .up-list{ display:flex; gap:8px; flex-wrap:wrap; margin-top:10px; }
+  .up-item{ position:relative; border:1px solid var(--line); border-radius:5px; padding:5px; background:rgba(0,0,0,.4); }
+  .up-item img,.up-item video{ display:block; max-height:110px; max-width:170px; border-radius:3px; }
+  .up-item .x{ position:absolute; top:-7px; right:-7px; width:19px; height:19px; line-height:17px; text-align:center;
+    border-radius:50%; background:#200; border:1px solid var(--line2); color:var(--neon2); cursor:pointer; font-size:.7rem; }
+  .up-item .x:hover{ background:var(--neon2); color:#000; }
+  .up-item .nm{ font-size:.6rem; color:var(--dim); max-width:170px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .file-hide{ display:none; }
+
+  /* ── 操作行：按钮/链接同高对齐（UC：修复「取消」按钮高矮漂移） ── */
+  .act-row{ display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
+  .act-row .btn{ margin:0; line-height:1.25; vertical-align:middle; }
+
+  /* ── 窄屏：上传区与按钮 ── */
+  @media (max-width:680px){
+    .up-row{ gap:8px; }
+    .up-item img,.up-item video{ max-height:96px; max-width:42vw; }
+    .up-item .nm{ max-width:42vw; }
+    .field label{ font-size:.74rem; line-height:1.6; }
+  }
+</style>
+</head>
+<body>
+<canvas id="bg"></canvas>
+<div id="nav"></div>
+
+<div class="page narrow">
+  <h1 class="title">✍ 发起议题</h1>
+  <div class="sub mb16">摆事实、讲道理 · 标题 ≤80 字 · 正文 ≤50000 字</div>
+
+  <div class="panel">
+    <div class="field">
+      <label>议题标题（2~80 字）</label>
+      <input class="inp" id="title" maxlength="80" placeholder="我接下来要说几点">
+      <div class="counter" id="tcount">0 / 80</div>
+    </div>
+    <div class="field">
+      <label>正文（1~50000 字）</label>
+      <textarea class="ta" id="body" maxlength="50000" style="min-height:260px" placeholder="没想到我国的武器开发，已经发展已经到这个地步......"></textarea>
+      <div class="counter" id="bcount">0 / 50000</div>
+    </div>
+
+    <div class="field">
+      <label>配图（最多 20 张，单张 ≤2MB，浏览器端自动压缩）</label>
+      <div class="up-row">
+        <input type="file" id="imgPick" accept="image/*" multiple class="file-hide">
+        <label for="imgPick" class="btn ghost sm" style="margin:0">🖼 选择图片</label>
+        <span class="muted" id="imgHint">未选择</span>
+      </div>
+      <div class="up-list" id="imgList"></div>
+    </div>
+
+    <div class="msg" id="msg"></div>
+    <div class="mt16 act-row">
+      <button class="btn" id="submit">🚀 发布议题</button>
+      <a class="btn ghost" href="/forum/">取消</a>
+    </div>
+  </div>
+</div>
+
+<footer>Copyright © yygq面馆 · <b>港ICP备00000001号</b></footer>
+
+<script src="/assets/common.js"></script>
+<script src="/assets/forum.js"></script>
+<script>
+YQ.boot('forum');
+var imgs = [];
+var MAX_IMGS = 20;                 /* 配图上限：3 → 20 */
+
+function say(text, cls){
+  var m = document.getElementById('msg');
+  m.className = 'msg show ' + (cls || 'ok');
+  m.textContent = text;
+}
+function renderPicked(){
+  document.getElementById('imgList').innerHTML = imgs.map(function(f, i){
+    return '<div class="up-item"><span class="x" data-i="' + i + '" data-k="img">✕</span>' +
+      '<img src="' + f.url + '" alt=""><div class="nm">' + YQ.esc(f.name) + '</div></div>';
+  }).join('');
+  YQ.$$('.up-item .x').forEach(function(el){
+    el.onclick = function(){
+      var i = +el.getAttribute('data-i');
+      URL.revokeObjectURL(imgs[i].url); imgs.splice(i, 1);
+      renderPicked();
+    };
+  });
+  document.getElementById('imgHint').textContent = imgs.length ? ('已选 ' + imgs.length + ' / ' + MAX_IMGS + ' 张') : '未选择';
+}
+
+document.getElementById('imgPick').onchange = function(e){
+  var files = Array.prototype.slice.call(e.target.files || []);
+  e.target.value = '';
+  if (!files.length) return;
+  var room = MAX_IMGS - imgs.length;
+  if (room <= 0) { say('最多 ' + MAX_IMGS + ' 张图片', 'warn'); return; }
+  files = files.slice(0, room);
+  files.forEach(function(file){
+    var url = URL.createObjectURL(file);
+    var item = { name: file.name, url: url, file: null, uploading: true };
+    imgs.push(item); renderPicked();
+    YQ.forum.upload(file, 'image', function(t){ say(t); }).then(function(finfo){
+      item.file = finfo; item.uploading = false; say('图片已上传：' + file.name);
+    }).catch(function(err){
+      imgs.splice(imgs.indexOf(item), 1); renderPicked();
+      say('图片「' + file.name + '」上传失败：' + err.message, 'err');
+    });
+  });
+};
+
+document.getElementById('submit').onclick = function(){
+  var btn = this;
+  var title = document.getElementById('title').value.trim();
+  var body = document.getElementById('body').value.trim();
+  if (title.length < 2) { say('标题至少要 2 个字', 'err'); return; }
+  if (!body) { say('正文不能为空', 'err'); return; }
+  var busy = imgs.filter(function(x){ return x.uploading; });
+  if (busy.length) { say('还有 ' + busy.length + ' 个文件在上传，稍等一下', 'warn'); return; }
+  var media = imgs.filter(function(x){ return x.file; }).map(function(x){ return { file: x.file, kind: 'image' }; });
+
+  YQ.forum.needLogin('/forum/new').then(function(u){
+    if (!u) return;
+    btn.disabled = true; btn.textContent = '发布中…';
+    YQ.api('/api/forum/posts', { method:'POST', body:{ title: title, body: body, media: media } }).then(function(r){
+      btn.disabled = false; btn.textContent = '🚀 发布议题';
+      if (!r.ok) { say(r.msg || '发布失败', 'err'); return; }
+      YQ.toast('议题已发布');
+      location.href = '/forum/thread?id=' + r.data.id;
+    });
+  });
+};
+
+YQ.counter('#title','#tcount',80);
+YQ.counter('#body','#bcount',50000);
+
+YQ.me(true).then(function(u){
+  if (!u) {
+    say('发议题需要先登录，正在跳转…', 'warn');
+    setTimeout(function(){ location.href = '/forum/login?next=' + encodeURIComponent('/forum/new'); }, 900);
+  }
+});
+</script>
+</body>
+</html>

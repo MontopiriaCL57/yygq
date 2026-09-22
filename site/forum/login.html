@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>登录 · yygq面馆</title>
+<link rel="stylesheet" href="/assets/theme.css">
+<style>
+  .auth-card{ width:min(94%,520px); margin:0 auto; }
+  @media (max-width:680px){
+    .auth-card{ width:100%; }
+    h1.title{ font-size:1.45rem; letter-spacing:.06em; }
+    .sub{ font-size:.76rem; letter-spacing:.06em; }
+    .panel{ padding:16px 14px; }
+    .panel .btn.block{ margin-top:14px; }
+    .center.mt8{ line-height:1.9; }
+  }
+</style>
+</head>
+<body>
+<canvas id="bg"></canvas>
+<div id="nav"></div>
+
+<div class="page auth-card">
+  <h1 class="title center">🔑 代表登录</h1>
+  <div class="sub center mb16">一次注册，论坛与谜题榜单通用</div>
+
+  <div class="panel pink">
+    <div class="field">
+      <label>用户名</label>
+      <input class="inp" id="name" autocomplete="username" placeholder="你的用户名">
+    </div>
+    <div class="field">
+      <label>密码</label>
+      <input class="inp" id="pw" type="password" autocomplete="current-password" placeholder="密码">
+    </div>
+    <div class="msg" id="msg"></div>
+    <button class="btn block" id="go">进入会场</button>
+    <div class="center mt8 fs78 dimc">还没有账号？<a href="/forum/register">立即注册</a> · <a href="/puzzle/">先去玩谜题</a></div>
+  </div>
+</div>
+
+<footer>Copyright © yygq面馆 · <b>港ICP备00000001号</b></footer>
+
+<script src="/assets/common.js"></script>
+<script>
+YQ.boot('forum');
+var next = YQ.qs('next','/forum/');
+if (next.indexOf('/') !== 0 || next.indexOf('//') === 0) next = '/forum/';   /* 防开放重定向 */
+
+function say(t, cls){ var m=document.getElementById('msg'); m.className='msg show '+(cls||'err'); m.textContent=t; }
+
+function go(){
+  var name = document.getElementById('name').value.trim();
+  var pw = document.getElementById('pw').value;
+  var b = document.getElementById('go');
+  if (!name || !pw) { say('用户名和密码都要填'); return; }
+  b.disabled = true; b.textContent = '登录中…';
+  YQ.api('/api/auth/login', { method:'POST', body:{ name:name, password:pw } }).then(function(r){
+    b.disabled = false; b.textContent = '进入会场';
+    if (!r.ok) {
+      if (YQ.forum && YQ.forum.isDown && YQ.forum.isDown(r)) say('账号服务还没上线（后端待部署），请先看留言板 :)');
+      else say(r.msg || '登录失败');
+      return;
+    }
+    YQ.user = r.data.name; YQ._mePromise = null;
+    YQ.toast('欢迎回来，' + r.data.name);
+    setTimeout(function(){ location.href = next; }, 400);
+  });
+}
+document.getElementById('go').onclick = go;
+document.getElementById('pw').addEventListener('keydown', function(e){ if(e.key==='Enter') go(); });
+document.getElementById('name').addEventListener('keydown', function(e){ if(e.key==='Enter') document.getElementById('pw').focus(); });
+</script>
+<script src="/assets/forum.js"></script>
+</body>
+</html>

@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>注册 · yygq面馆</title>
+<link rel="stylesheet" href="/assets/theme.css">
+<style>
+  .auth-card{ width:min(94%,560px); margin:0 auto; }
+  @media (max-width:680px){
+    .auth-card{ width:100%; }
+    h1.title{ font-size:1.45rem; letter-spacing:.06em; }
+    .sub{ font-size:.74rem; letter-spacing:.04em; }
+    .panel{ padding:16px 14px; }
+    .captcha{ gap:8px; }
+    .captcha .q{ width:100%; text-align:center; }
+    .captcha .inp{ flex:1 1 100%; max-width:none!important; }
+    #crefresh{ width:100%; }
+    .muted{ line-height:1.85; }
+  }
+</style>
+</head>
+<body>
+<canvas id="bg"></canvas>
+<div id="nav"></div>
+
+<div class="page auth-card">
+  <h1 class="title center">📝 代表注册</h1>
+  <div class="sub center mb16">用户名 3~16 位（中英文/数字/下划线）· 密码 8~64 位</div>
+
+  <div class="panel">
+    <div class="field">
+      <label>用户名</label>
+      <input class="inp" id="name" maxlength="16" autocomplete="username" placeholder="例如：悟空">
+      <div class="counter" id="ncount">0 / 16</div>
+    </div>
+    <div class="field">
+      <label>密码（8~64 位）</label>
+      <input class="inp" id="pw" type="password" autocomplete="new-password" placeholder="别用 12345678">
+    </div>
+    <div class="field">
+      <label>确认密码</label>
+      <input class="inp" id="pw2" type="password" autocomplete="new-password" placeholder="再输一次">
+    </div>
+    <div class="field">
+      <label>人机验证（一次有效）</label>
+      <div class="captcha">
+        <span class="q" id="cq">加载中…</span>
+        <input class="inp" id="ca" style="max-width:120px" inputmode="numeric" placeholder="答案">
+        <button class="btn ghost sm fix" id="crefresh" style="margin:0">换一题</button>
+      </div>
+    </div>
+    <div class="msg" id="msg"></div>
+    <button class="btn block" id="go">注册并进入</button>
+    <div class="center mt8 fs78 dimc">已有账号？<a href="/forum/login">直接登录</a></div>
+    <div class="hr"></div>
+    <div class="muted" style="line-height:1.9">
+      · 密码用 scrypt 加盐哈希存储，服务端不保存明文。<br>
+      · 登录状态是 HMAC 签名 Cookie，30 天有效。<br>
+      · 注册与登录都有 IP 限流，别刷。
+    </div>
+  </div>
+</div>
+
+<footer>Copyright © yygq面馆 · <b>港ICP备00000001号</b></footer>
+
+<script src="/assets/common.js"></script>
+<script src="/assets/forum.js"></script>
+<script>
+YQ.boot('forum');
+var capToken = '';
+
+function say(t, cls){ var m=document.getElementById('msg'); m.className='msg show '+(cls||'err'); m.textContent=t; }
+function ok(t){ say(t,'ok'); }
+
+function refreshCaptcha(){
+  document.getElementById('cq').textContent = '加载中…';
+  YQ.api('/api/auth/captcha').then(function(r){
+    if (!r.ok) {
+      document.getElementById('cq').textContent = '服务未就绪';
+      say('账号服务还没上线（后端待部署），注册暂时不可用');
+      return;
+    }
+    capToken = r.data.token;
+    document.getElementById('cq').textContent = r.data.q;
+    document.getElementById('ca').value = '';
+  });
+}
+document.getElementById('crefresh').onclick = refreshCaptcha;
+refreshCaptcha();
+
+function go(){
+  var name = document.getElementById('name').value.trim();
+  var pw = document.getElementById('pw').value;
+  var pw2 = document.getElementById('pw2').value;
+  var ca = document.getElementById('ca').value.trim();
+  var b = document.getElementById('go');
+  if (!/^[0-9A-Za-z_\u4e00-\u9fff]{3,16}$/.test(name)) { say('用户名要 3~16 位，只能是中英文、数字、下划线'); return; }
+  if (pw.length < 8 || pw.length > 64) { say('密码要 8~64 位'); return; }
+  if (pw !== pw2) { say('两次密码不一样'); return; }
+  if (!ca) { say('先答一下验证题'); return; }
+  b.disabled = true; b.textContent = '注册中…';
+  YQ.api('/api/auth/register', { method:'POST', body:{ name:name, password:pw, captcha:ca, captcha_token:capToken } }).then(function(r){
+    b.disabled = false; b.textContent = '注册并进入';
+    if (!r.ok) {
+      if (YQ.forum.isDown(r)) say('账号服务还没上线（后端待部署）');
+      else { say(r.msg || '注册失败'); refreshCaptcha(); }
+      return;
+    }
+    YQ.user = r.data.name; YQ._mePromise = null;
+    YQ.toast('注册成功，欢迎 ' + r.data.name);
+    setTimeout(function(){ location.href = '/forum/'; }, 500);
+  });
+}
+document.getElementById('go').onclick = go;
+document.getElementById('ca').addEventListener('keydown', function(e){ if(e.key==='Enter') go(); });
+YQ.counter('#name','#ncount',16);
+</script>
+</body>
+</html>

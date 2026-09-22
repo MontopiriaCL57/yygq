@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#0a0620">
+<title>设置代表资料 · yygq面馆</title>
+<link rel="stylesheet" href="/assets/theme.css">
+<style>
+  .set-row{ display:flex; gap:20px; align-items:flex-start; flex-wrap:wrap; }
+  .set-av{ text-align:center; flex:0 0 auto; }
+  .set-av .tip{ font-size:.68rem; color:var(--dim2); margin-top:8px; letter-spacing:.06em; line-height:1.7; }
+  .set-main{ flex:1; min-width:240px; }
+  .file-hide{ display:none; }
+  .prev{ position:relative; display:inline-block; }
+  .prev .ring{ position:absolute; inset:-6px; border-radius:50%; border:1px dashed rgba(0,255,213,.3); animation:spin 18s linear infinite; }
+  @keyframes spin{ to{ transform:rotate(360deg) } }
+  .name-plate{ font-size:1.1rem; color:#fff; letter-spacing:.08em; text-shadow:0 0 10px var(--neon); }
+  @media (max-width:680px){
+    .set-row{ flex-direction:column; align-items:center; }
+    .set-main{ width:100%; min-width:0; }
+  }
+</style>
+</head>
+<body>
+<canvas id="bg"></canvas>
+<div id="nav"></div>
+
+<div class="page narrow">
+  <h1 class="title">⚙ 设置代表资料</h1>
+  <div class="sub mb16">头像与简介会显示在「代表档案」、花果山会议的议题与发言、以及留言板上</div>
+
+  <div class="panel">
+    <div class="set-row">
+      <div class="set-av">
+        <div class="prev">
+          <span class="ring" aria-hidden="true"></span>
+          <img class="avatar-lg" id="avNow" alt="当前头像" src="" style="display:none">
+          <span class="avatar-lg avatar-fb" id="avFb">?</span>
+        </div>
+        <div class="mt16">
+          <input type="file" id="avPick" accept="image/*" class="file-hide">
+          <label for="avPick" class="btn ghost sm" style="margin:0">🖼 选择图片</label>
+        </div>
+        <div class="tip">会自动裁成正方形并压到 160×160<br>（原图不落盘，省空间也更快）</div>
+        <div class="mt8"><button class="btn ghost sm" id="avClear" style="margin:0">✕ 清除头像</button></div>
+      </div>
+
+      <div class="set-main">
+        <div class="field">
+          <label>代表名（不可改）</label>
+          <div class="name-plate" id="whoName">…</div>
+        </div>
+        <div class="field">
+          <label>个人简介（≤200 字）</label>
+          <textarea class="ta" id="bio" maxlength="200" style="min-height:130px"
+            placeholder="凌子涵"></textarea>
+          <div class="counter" id="bioCount">0 / 200</div>
+        </div>
+        <div class="msg" id="msg"></div>
+        <div class="mt16">
+          <button class="btn" id="save">💾 保存资料</button>
+          <a class="btn ghost" id="toProfile" href="/forum/user">看我的档案</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel gold">
+    <h3>说明</h3>
+    <div class="muted" style="line-height:1.9">
+      · 个人简介不要写自己的真实姓名
+    </div>
+  </div>
+
+  <footer>Copyright © yygq面馆 · <b>港ICP备00000001号</b></footer>
+</div>
+
+<script src="/assets/common.js"></script>
+<script>
+YQ.boot('forum');
+var pendingAvatar = null;     /* 已上传好、等待保存的头像文件名 */
+var currentAvatar = '';
+
+function say(t, cls){ var m=document.getElementById('msg'); m.className='msg show '+(cls||'err'); m.textContent=t; }
+function okSay(t){ say(t,'ok'); }
+
+function showAvatar(url){
+  var img=document.getElementById('avNow'), fb=document.getElementById('avFb');
+  if (url) { img.src=url; img.style.display='block'; fb.style.display='none'; }
+  else { img.style.display='none'; fb.style.display='flex'; }
+}
+
+/* 居中裁剪成正方形 + 缩到 160×160 */
+function cropResize(file, size){
+  return new Promise(function(res, rej){
+    var url = URL.createObjectURL(file);
+    var img = new Image();
+    img.onload = function(){
+      try {
+        var s = Math.min(img.naturalWidth, img.naturalHeight);
+        var sx = (img.naturalWidth - s) / 2, sy = (img.naturalHeight - s) / 2;
+        var c = document.createElement('canvas'); c.width = c.height = size;
+        c.getContext('2d').drawImage(img, sx, sy, s, s, 0, 0, size, size);
+        URL.revokeObjectURL(url);
+        c.toBlob(function(b){ b ? res(b) : rej(new Error('压缩失败')); }, 'image/jpeg', 0.85);
+      } catch(e){ URL.revokeObjectURL(url); rej(e); }
+    };
+    img.onerror = function(){ URL.revokeObjectURL(url); rej(new Error('图片读不出来')); };
+    img.src = url;
+  });
+}
+
+YQ.me(true).then(function(u){
+  if (!u) { location.href = '/forum/login?next=' + encodeURIComponent('/forum/settings'); return; }
+  document.getElementById('whoName').textContent = u;
+  document.getElementById('toProfile').href = '/forum/user?name=' + encodeURIComponent(u);
+  return YQ.api('/api/auth/me').then(function(r){
+    if (r.ok && r.data) {
+      currentAvatar = r.data.avatar_url || '';
+      showAvatar(currentAvatar);
+      document.getElementById('bio').value = r.data.bio || '';
+      document.getElementById('bioCount').textContent = (r.data.bio || '').length + ' / 200';
+    }
+    document.getElementById('avFb').textContent = String(u).slice(0,1);
+  });
+});
+
+document.getElementById('avPick').onchange = function(e){
+  var file = (e.target.files || [])[0];
+  e.target.value = '';
+  if (!file) return;
+  if (!/^image\//.test(file.type)) { say('只能选图片'); return; }
+  say('正在裁剪压缩…', 'ok');
+  cropResize(file, 160).then(function(blob){
+    showAvatar(URL.createObjectURL(blob));           /* 先本地预览 */
+    say('压缩完成 ' + Math.round(blob.size/1024) + 'KB，上传中…', 'ok');
+    return YQ.blobToBase64(blob).then(function(b64){
+      return YQ.api('/api/upload', { method:'POST', timeout:60000, body:{ kind:'image', data:b64 } });
+    });
+  }).then(function(r){
+    if (!r.ok) throw new Error(r.msg || '上传失败');
+    pendingAvatar = r.data.file.file;
+    okSay('头像已就绪，记得点下面的「保存资料」');
+  }).catch(function(err){ say('头像处理失败：' + err.message); });
+};
+
+document.getElementById('avClear').onclick = function(){
+  pendingAvatar = '';
+  currentAvatar = '';
+  showAvatar('');
+  say('已清除，保存后生效（会退回首字母圆牌）', 'ok');
+};
+
+document.getElementById('bio').addEventListener('input', function(){
+  document.getElementById('bioCount').textContent = this.value.length + ' / 200';
+});
+
+document.getElementById('save').onclick = function(){
+  var btn = this;
+  var body = { bio: document.getElementById('bio').value };
+  if (pendingAvatar !== null) body.avatar = pendingAvatar;    /* null=没动过头像 */
+  btn.disabled = true; btn.textContent = '保存中…';
+  YQ.api('/api/profile', { method:'POST', body: body }).then(function(r){
+    btn.disabled = false; btn.textContent = '💾 保存资料';
+    if (!r.ok) { say(r.msg || '保存失败'); return; }
+    currentAvatar = r.data.avatar_url || '';
+    pendingAvatar = null;
+    showAvatar(currentAvatar);
+    okSay('资料已保存 ✓');
+  });
+};
+</script>
+</body>
+</html>

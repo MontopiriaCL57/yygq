@@ -1,0 +1,23 @@
+{
+ "version": 1,
+ "generated": "2026-09-11T18:00:14",
+ "total": 200,
+ "by_cat": {
+  "anime": 50,
+  "game": 50,
+  "esports": 50,
+  "sports": 50
+ },
+ "by_type": {
+  "attr": 112,
+  "riddle": 40,
+  "image": 24,
+  "draw": 24
+ },
+ "files": [
+  "anime.json",
+  "game.json",
+  "esports.json",
+  "sports.json"
+ ]
+}

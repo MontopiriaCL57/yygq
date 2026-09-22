@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>排行榜 · 每日谜题</title>
+<link rel="stylesheet" href="/assets/theme.css">
+<style>
+  /* ── 榜单排版 v2：桌面单行、手机自动折成两行卡片 ── */
+  .tabs{ display:flex; gap:8px; margin:16px 0 6px; overflow-x:auto; -webkit-overflow-scrolling:touch;
+    padding-bottom:4px; scrollbar-width:none; }
+  .tabs::-webkit-scrollbar{ display:none; }
+  .tabs span{ flex:0 0 auto; padding:9px 16px; border:1px solid var(--line); border-radius:20px;
+    font-size:.82rem; color:var(--neon); cursor:pointer; letter-spacing:.1em; transition:.22s;
+    background:rgba(0,255,213,.05); -webkit-tap-highlight-color:transparent; white-space:nowrap; }
+  .tabs span:hover{ background:rgba(0,255,213,.14); }
+  .tabs span.on{ color:#06121a; font-weight:700; border-color:var(--neon);
+    background:linear-gradient(135deg,var(--neon),var(--neon3)); box-shadow:0 0 18px rgba(0,255,213,.45); }
+
+  .rank{ display:flex; align-items:center; gap:12px; padding:12px 14px; border:1px solid var(--line);
+    border-radius:9px; background:linear-gradient(150deg, var(--panel-1), var(--panel-2));
+    margin-bottom:9px; transition:.2s; position:relative; overflow:hidden; }
+  .rank::after{ content:''; position:absolute; left:0; top:0; bottom:0; width:3px;
+    background:linear-gradient(180deg,var(--neon),var(--neon2)); opacity:.35; }
+  .rank:hover{ border-color:var(--neon2); transform:translateX(2px); }
+  .rank .no{ width:34px; text-align:center; color:var(--dim); font-size:.9rem; flex:0 0 auto;
+    font-weight:700; letter-spacing:.02em; }
+  .rank .nm{ flex:1; min-width:0; color:#fff; font-size:.95rem; overflow-wrap:anywhere; }
+  .rank .nm a{ color:#fff; }
+  .rank .nm a:hover{ color:var(--neon); }
+  .rank .sc{ color:var(--gold); font-size:1.05rem; letter-spacing:.04em; flex:0 0 auto;
+    text-shadow:0 0 10px rgba(255,215,0,.45); }
+  .rank .ex{ font-size:.7rem; color:var(--dim); flex:0 0 auto; white-space:nowrap; }
+
+  .rank.top1{ border-color:rgba(255,215,0,.6); box-shadow:0 0 22px rgba(255,215,0,.16); }
+  .rank.top1::after{ background:linear-gradient(180deg,var(--gold),#ff8a00); opacity:1; }
+  .rank.top1 .no{ color:var(--gold); text-shadow:0 0 12px var(--gold); font-size:1.2rem; }
+  .rank.top2::after{ background:linear-gradient(180deg,#d8f6ff,#7fb3c8); opacity:.9; }
+  .rank.top2 .no{ color:#d8f6ff; text-shadow:0 0 10px rgba(216,246,255,.7); font-size:1.05rem; }
+  .rank.top3::after{ background:linear-gradient(180deg,#ffb066,#a35b1f); opacity:.9; }
+  .rank.top3 .no{ color:#ffb066; text-shadow:0 0 10px rgba(255,176,102,.7); font-size:1.05rem; }
+  .rank.me{ border-color:var(--neon2); box-shadow:0 0 20px rgba(255,0,229,.22); }
+  .rank.me .nm::after{ content:' 我'; font-size:.66rem; color:var(--neon2); letter-spacing:.1em; }
+
+  .sub-sel{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-bottom:10px; }
+  .lb-note{ font-size:.72rem; color:var(--dim2); line-height:1.9; margin-top:14px; }
+  .sum-bar{ display:flex; gap:14px; flex-wrap:wrap; font-size:.74rem; color:var(--dim); margin:4px 0 14px; }
+  .sum-bar b{ color:var(--gold); }
+
+  /* 手机：折成两行卡片，分数与名次同排、统计信息下沉 */
+  @media (max-width:680px){
+    .tabs{ margin:12px -12px 8px; padding:0 12px 6px; }
+    .tabs span{ padding:9px 14px; font-size:.78rem; }
+    .rank{ display:grid; grid-template-columns:34px 1fr auto; grid-template-areas:"no nm sc" ". ex ex";
+      row-gap:3px; column-gap:8px; padding:11px 12px; }
+    .rank .no{ grid-area:no; align-self:center; }
+    .rank .nm{ grid-area:nm; align-self:center; font-size:.92rem; }
+    .rank .sc{ grid-area:sc; align-self:center; font-size:.98rem; }
+    .rank .ex{ grid-area:ex; white-space:normal; }
+    .rank:hover{ transform:none; }
+    .sub-sel{ gap:6px; }
+    .sub-sel .inp{ flex:1; min-width:0; }
+  }
+</style>
+</head>
+<body>
+<canvas id="bg"></canvas>
+<div id="nav"></div>
+
+<div class="page narrow">
+  <h1 class="title">🏆 谜题排行榜</h1>
+  <div class="sub mb8">未登录可玩，登录后才计入榜单 · 数据每天 0 点后更新</div>
+
+  <div class="tabs" id="tabs">
+    <span data-t="daily" class="on">日榜</span>
+    <span data-t="total">总分榜</span>
+    <span data-t="streak">连击榜</span>
+    <span data-t="cat">分类榜</span>
+  </div>
+  <div class="sub-sel" id="catsel" style="display:none">
+    <span class="muted">分类：</span>
+    <select class="sel fix" id="cat" style="width:auto">
+      <option value="anime">动漫</option>
+      <option value="game">游戏</option>
+      <option value="esports">电竞</option>
+      <option value="sports">体育</option>
+    </select>
+  </div>
+  <div class="sub-sel">
+    <span class="muted" id="dayLabel">日期：</span>
+    <input class="inp fix" id="day" type="date" style="width:auto">
+    <button class="btn ghost sm" id="reload" style="margin:0">刷新</button>
+  </div>
+
+  <div class="sum-bar" id="sumbar"></div>
+  <div id="list"><div class="loading">加载中</div></div>
+
+  <div class="lb-note">
+    · <b class="gold">日榜</b>按当天得分排序；<b class="gold">总分榜</b>累计所有天数；<b class="gold">连击榜</b>看连续答对天数；<b class="gold">分类榜</b>只看某一类题目。<br>
+    · 计分：猜中 +100，每错一次 -15（单题最低 40）；连击从第 2 天起每天 +10%，最高翻倍。<br>
+    · 未登录可以玩，但只有登录后的成绩才计入榜单。
+  </div>
+</div>
+
+<footer>Copyright © yygq面馆 · <b>港ICP备00000001号</b></footer>
+
+<script src="/assets/common.js"></script>
+<script src="/assets/puzzle-engine.js"></script>
+<script>
+YQ.boot('board');
+var type = 'daily';
+document.getElementById('day').value = YQ.puzzle.today();
+document.getElementById('day').parentNode.style.display = 'none';
+
+function load(){
+  YQ.loading('#list');
+  var day = document.getElementById('day').value || YQ.puzzle.today();
+  var cat = document.getElementById('cat').value;
+  var url = '/api/puzzle/leaderboard?type=' + type + '&day=' + encodeURIComponent(day);
+  if (type === 'cat') url += '&cat=' + encodeURIComponent(cat);
+  YQ.api(url + '&t=' + Date.now()).then(function(r){
+    if (!r.ok) {
+      YQ.empty('#list', r.code === 404 || r.code === 503 ? '榜单服务还没上线' : '榜单加载失败',
+        (r.code === 404 || r.code === 503) ? '谜题本身可以正常玩，成绩会先存在本地' : (r.msg || ''), '🏆');
+      return;
+    }
+    var list = r.data.list || [];
+    var me = YQ.user;
+    var mine = null;
+    if (me) { for (var z = 0; z < list.length; z++) if (list[z].name === me) { mine = z + 1; break; } }
+    document.getElementById('sumbar').innerHTML = list.length
+      ? ('上榜 <b>' + list.length + '</b> 人' + (mine ? ' · 我排第 <b>' + mine + '</b>' : (me ? ' · 我还没上榜' : ' · 登录后才计入榜单')))
+      : '';
+    if (!list.length) { YQ.empty('#list', '这个榜单还空着', '快去答题，第一个上榜', '🥇'); return; }
+    var html = list.map(function(x, i){
+      var cls = 'rank' + (i === 0 ? ' top1' : i === 1 ? ' top2' : i === 2 ? ' top3' : '')
+        + (me && x.name === me ? ' me' : '');
+      var right, extra = '';
+      if (type === 'streak') { right = 'x' + (x.streak || 0); extra = '连续天数'; }
+      else if (type === 'total') { right = (x.score || 0) + ' 分'; extra = '答对 ' + (x.solved||0) + ' 题 · 出战 ' + (x.days||0) + ' 天'; }
+      else { right = (x.score || 0) + ' 分'; extra = '答对 ' + (x.solved || 0) + ' 题'; }
+      return '<div class="' + cls + '"><span class="no">' + (i + 1) + '</span>' +
+        '<span class="nm"><a href="/forum/user?name=' + encodeURIComponent(x.name) + '">' + YQ.esc(x.name) + '</a></span>' +
+        '<span class="sc">' + right + '</span><span class="ex">' + extra + '</span></div>';
+    }).join('');
+    document.getElementById('list').innerHTML = html;
+  });
+}
+YQ.$$('#tabs span').forEach(function(s){
+  s.onclick = function(){
+    YQ.$$('#tabs span').forEach(function(x){ x.classList.remove('on'); });
+    s.classList.add('on');
+    type = s.getAttribute('data-t');
+    document.getElementById('catsel').style.display = (type === 'cat') ? 'flex' : 'none';
+    document.getElementById('day').parentNode.style.display = (type === 'daily') ? 'flex' : 'none';
+    load();
+  };
+});
+document.getElementById('cat').onchange = load;
+document.getElementById('reload').onclick = load;
+YQ.me(true).then(load);
+</script>
+</body>
+</html>

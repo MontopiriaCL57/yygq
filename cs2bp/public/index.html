@@ -1,0 +1,2815 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CS2内部赛管理工具-Andy</title>
+    <link rel="icon" href="andy.ico" type="image/x-icon">
+    <script src="socket.io/socket.io.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #1a4b8c;
+            --secondary: #e63946;
+            /* 禁用红色 */
+            --select-green: #4CAF50;
+            /* 选择绿色 */
+            --dark: #1d3557;
+            --light: #f1faee;
+            --accent: #457b9d;
+            --team1: #3498db;
+            --team2: #e74c3c;
+            --highlight: #ffd700;
+            /* 高亮黄色 */
+            --chat-bg: #2d2d2d;
+            --chat-header: #1e1e1e;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #121212;
+            color: var(--light);
+            margin: 0;
+            padding: 20px;
+            padding-bottom: 320px;
+            /* 为聊天窗口留出空间 */
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        h1,
+        h2,
+        h3 {
+            color: #ffffff;
+            text-align: center;
+        }
+
+        .status-bar {
+            background-color: var(--dark);
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            text-align: center;
+            font-size: 1.2rem;
+            border: 2px solid var(--accent);
+        }
+
+        .status-bar.highlight {
+            background-color: rgba(255, 215, 0, 0.1);
+            border-color: var(--highlight);
+            animation: pulse 2s infinite;
+        }
+
+        .section {
+            background-color: #1e1e1e;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+        }
+
+        .announcement-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 3000;
+        }
+
+        /* 公告相关样式 */
+        .announcement-content {
+            width: 90%;
+            max-width: 600px;
+            background-color: #1e1e1e;
+            padding: 30px;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        #announcement-text {
+            margin: 20px 0;
+            line-height: 1.6;
+            text-align: left;
+        }
+
+        /* 房间管理样式 */
+        .room-management {
+            max-width: 600px;
+            margin: 50px auto;
+            background-color: #1e1e1e;
+            padding: 30px;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+        }
+
+        input {
+            width: 100%;
+            padding: 10px;
+            border-radius: 5px;
+            border: none;
+            margin-bottom: 10px;
+            background-color: #333;
+            color: white;
+            font-size: 1rem;
+        }
+
+        /* 编辑功能样式 */
+        .edit-controls {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 20px;
+            gap: 15px;
+        }
+
+        .edit-btn {
+            background-color: var(--accent);
+            padding: 8px 15px;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .edit-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+        }
+
+        .edit-modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background-color: #1e1e1e;
+            padding: 25px;
+            border-radius: 8px;
+            width: 90%;
+            max-width: 500px;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .modal-content h3 {
+            margin-top: 0;
+            margin-bottom: 20px;
+        }
+
+        .edit-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .edit-item input {
+            flex: 1;
+            margin-bottom: 0;
+        }
+
+        .modal-buttons {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .team-name-input {
+            flex: 1;
+            padding: 8px;
+            border: 1px solid #444;
+            border-radius: 4px;
+            background-color: #333;
+            color: white;
+        }
+
+        .edit-item label {
+            min-width: 100px;
+            text-align: right;
+        }
+
+        /* 队员选择样式 */
+        .player-selection {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .captains-dice {
+            flex: 1;
+            min-width: 300px;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .dice-permission-notice {
+            color: var(--highlight);
+            margin: 15px 0;
+            padding: 10px;
+            background-color: rgba(255, 215, 0, 0.1);
+            border-radius: 5px;
+            font-weight: bold;
+        }
+
+        .dice-result {
+            font-size: 4rem;
+            margin: 20px 0;
+            height: 80px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .dice-btn {
+            background-color: var(--accent);
+            padding: 10px 25px;
+            font-size: 1.1rem;
+        }
+
+        .players-container {
+            flex: 2;
+            min-width: 300px;
+            width: 100%;
+            max-width: 1000px;
+        }
+
+        .available-players {
+            background-color: var(--dark);
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .teams-container {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .team-players {
+            flex: 1;
+            min-width: 250px;
+            background-color: var(--dark);
+            padding: 15px;
+            border-radius: 8px;
+        }
+
+        .player-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .player-card {
+            background-color: #333;
+            border-radius: 6px;
+            padding: 8px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .player-card:hover {
+            transform: translateY(-2px);
+            background-color: #444;
+        }
+
+        .player-card.selected {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .team1 .player-card {
+            background-color: rgba(52, 152, 219, 0.2);
+            border: 1px solid var(--team1);
+        }
+
+        .team2 .player-card {
+            background-color: rgba(231, 76, 60, 0.2);
+            border: 1px solid var(--team2);
+        }
+
+        .captain-badge {
+            display: inline-block;
+            background-color: gold;
+            color: #000;
+            font-size: 0.7rem;
+            padding: 2px 5px;
+            border-radius: 3px;
+            margin-left: 5px;
+            font-weight: bold;
+        }
+
+        /* 队伍信息样式 */
+        .team-info {
+            display: flex;
+            justify-content: space-around;
+            margin-bottom: 30px;
+        }
+
+        .team {
+            background-color: var(--dark);
+            padding: 15px;
+            border-radius: 8px;
+            width: 40%;
+            text-align: center;
+            border: 2px solid;
+            transition: all 0.3s ease;
+        }
+
+        .team.current-turn {
+            transform: scale(1.03);
+            box-shadow: 0 0 15px rgba(255, 215, 0, 0.5);
+        }
+
+        .first-hand {
+            border-color: var(--secondary);
+        }
+
+        .second-hand {
+            border-color: var(--accent);
+        }
+
+        /* 地图选择样式 */
+        .map-section {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        .map-pool {
+            flex: 1;
+            min-width: 300px;
+            background-color: #1e1e1e;
+            padding: 15px;
+            border-radius: 8px;
+        }
+
+        .selected-maps {
+            flex: 1;
+            min-width: 300px;
+            background-color: #1e1e1e;
+            padding: 15px;
+            border-radius: 8px;
+        }
+
+        .map-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .map-card {
+            background-color: var(--dark);
+            border-radius: 6px;
+            padding: 10px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+        }
+
+        .map-card:hover {
+            transform: translateY(-3px);
+            border-color: var(--accent);
+        }
+
+        .map-card.disabled {
+            opacity: 0.5;
+            text-decoration: line-through;
+            cursor: not-allowed;
+        }
+
+        /* 禁用状态样式 - 红色 */
+        .map-card.selected.ban {
+            border-color: var(--secondary);
+            background-color: rgba(230, 57, 70, 0.2);
+        }
+
+        /* 选择状态样式 - 绿色 */
+        .map-card.selected.select {
+            border-color: var(--select-green);
+            background-color: rgba(76, 175, 80, 0.2);
+        }
+
+        /* 阵营选择高亮样式 */
+        .map-card.camp-btn.selected {
+            transform: scale(1.05);
+            box-shadow: 0 0 15px rgba(255, 255, 255, 0.3);
+        }
+
+        .map-step {
+            background-color: var(--dark);
+            border-radius: 6px;
+            padding: 15px;
+            margin-bottom: 10px;
+        }
+
+        .action-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 30px;
+        }
+
+        button {
+            background-color: var(--accent);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: background-color 0.3s ease;
+        }
+
+        button:hover {
+            background-color: var(--secondary);
+        }
+
+        button:disabled {
+            background-color: #555;
+            cursor: not-allowed;
+        }
+
+        button:disabled:hover {
+            background-color: #555;
+        }
+
+        .camp-select {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .camp-btn {
+            flex: 1;
+            max-width: 100px;
+        }
+
+        .ct {
+            background-color: #1a4b8c;
+        }
+
+        .t {
+            background-color: #8b0000;
+        }
+
+        .progress-bar {
+            height: 10px;
+            background-color: #333;
+            border-radius: 5px;
+            margin: 20px 0;
+            overflow: hidden;
+        }
+
+        .progress {
+            height: 100%;
+            background-color: var(--secondary);
+            width: 0%;
+            transition: width 0.5s ease;
+        }
+
+        /* 动画效果 */
+        @keyframes pulse {
+            0% {
+                transform: scale(1);
+                box-shadow: 0 0 0 0 rgba(255, 215, 0, 0.4);
+            }
+
+            70% {
+                transform: scale(1);
+                box-shadow: 0 0 0 10px rgba(255, 215, 0, 0);
+            }
+
+            100% {
+                transform: scale(1);
+                box-shadow: 0 0 0 0 rgba(255, 215, 0, 0);
+            }
+        }
+
+        .pulse {
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
+        }
+
+        .fade-in {
+            animation: fadeIn 0.5s ease forwards;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .phase-indicator {
+            text-align: center;
+            margin: 20px 0;
+            padding: 10px;
+            background-color: var(--dark);
+            border-radius: 8px;
+        }
+
+        /* 结算页面样式 */
+        .summary-section {
+            background-color: #1e1e1e;
+            padding: 30px;
+            border-radius: 10px;
+            margin-top: 30px;
+            border: 2px solid var(--select-green);
+        }
+
+        .summary-header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .teams-summary {
+            display: flex;
+            justify-content: space-around;
+            margin-bottom: 40px;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+
+        .team-summary-card {
+            flex: 1;
+            min-width: 300px;
+            background-color: var(--dark);
+            padding: 20px;
+            border-radius: 8px;
+            border-top: 5px solid;
+        }
+
+        .team1-summary {
+            border-color: var(--team1);
+        }
+
+        .team2-summary {
+            border-color: var(--team2);
+        }
+
+        .maps-summary {
+            margin-top: 30px;
+        }
+
+        .map-summary-item {
+            background-color: var(--dark);
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .map-name {
+            font-weight: bold;
+            font-size: 1.1rem;
+        }
+
+        .map-teams {
+            display: flex;
+            gap: 20px;
+        }
+
+        .team-camp {
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-size: 0.9rem;
+        }
+
+        .final-actions {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 40px;
+        }
+
+        .restart-btn {
+            background-color: var(--select-green);
+        }
+
+        .restart-btn:hover {
+            background-color: #3d9140;
+        }
+
+        /* 提示标签样式 */
+        .badge {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            font-weight: bold;
+            margin-left: 8px;
+        }
+
+        .badge-first {
+            background-color: rgba(230, 57, 70, 0.3);
+            color: #ff8a80;
+        }
+
+        .badge-second {
+            background-color: rgba(69, 123, 157, 0.3);
+            color: #90caf9;
+        }
+
+        .badge-turn {
+            background-color: rgba(255, 215, 0, 0.3);
+            color: #fff9c4;
+            animation: pulse 1.5s infinite;
+        }
+
+        /* 聊天区域样式 */
+        .chat-container {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 300px;
+            z-index: 1000;
+            transition: all 0.3s ease;
+            /* 固定位置，不受拖动影响 */
+        }
+
+        .chat-window {
+            background-color: var(--chat-bg);
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .chat-header {
+            padding: 12px 15px;
+            background-color: var(--chat-header);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: move;
+            border-bottom: 1px solid #444;
+        }
+
+        .chat-title {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: bold;
+        }
+
+        .chat-controls {
+            display: flex;
+            gap: 8px;
+        }
+
+        .chat-control-btn {
+            background: none;
+            border: none;
+            color: var(--light);
+            cursor: pointer;
+            width: 28px;
+            height: 28px;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0;
+        }
+
+        .chat-control-btn:hover {
+            background-color: #444;
+            color: var(--light);
+        }
+
+        .chat-messages {
+            height: 250px;
+            overflow-y: auto;
+            padding: 10px;
+        }
+
+        .message {
+            margin-bottom: 10px;
+            padding: 8px 12px;
+            border-radius: 6px;
+            background-color: #3a3a3a;
+            max-width: 80%;
+            word-wrap: break-word;
+        }
+
+        .message.team1 {
+            margin-right: auto;
+            border-left: 3px solid var(--team1);
+        }
+
+        .message.team2 {
+            margin-left: auto;
+            border-right: 3px solid var(--team2);
+        }
+
+        .message.system {
+            margin: 10px auto;
+            background-color: rgba(76, 175, 80, 0.2);
+            border-left: 3px solid var(--select-green);
+            max-width: 90%;
+        }
+
+        .message.username {
+            font-weight: bold;
+            margin-bottom: 3px;
+            display: block;
+            font-size: 0.9rem;
+        }
+
+        .message.text {
+            font-size: 0.95rem;
+        }
+
+        .chat-input {
+            display: flex;
+            padding: 10px;
+            border-top: 1px solid #444;
+        }
+
+        .chat-input input {
+            flex: 1;
+            margin-right: 8px;
+            margin-bottom: 0;
+            background-color: #3a3a3a;
+            border: 1px solid #555;
+        }
+
+        .chat-input button {
+            padding: 8px 15px;
+            font-size: 0.9rem;
+        }
+
+        /* 最小化的聊天图标 - 固定在右下角 */
+        .chat-minimized {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background-color: var(--accent);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+            position: relative;
+            /* 固定在右下角 */
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+        }
+
+        .chat-minimized .unread-indicator {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            width: 22px;
+            height: 22px;
+            background-color: var(--secondary);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8rem;
+            font-weight: bold;
+        }
+
+        .room-info {
+            margin-bottom: 20px;
+            padding: 15px;
+            background-color: var(--dark);
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .room-id {
+            font-family: monospace;
+            font-size: 1.2rem;
+            color: var(--highlight);
+            margin: 10px 0;
+        }
+
+        .online-users {
+            margin-top: 10px;
+            font-size: 0.9rem;
+        }
+
+        .user-team-indicator {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 5px;
+        }
+
+        .user-team1 {
+            background-color: var(--team1);
+        }
+
+        .user-team2 {
+            background-color: var(--team2);
+        }
+    
+        /* —— 重连/掉线/复制 样式（UC 修复版）—— */
+        .resume-box { margin-top: 14px; padding: 10px 14px; border: 1px dashed rgba(120,180,255,.6); border-radius: 8px; color: inherit; font-size: 14px; }
+        .mini-btn { margin-left: 6px; padding: 2px 10px; font-size: 12px; border-radius: 6px; border: 1px solid rgba(120,180,255,.7); background: transparent; color: inherit; cursor: pointer; }
+        .mini-btn.ghost { opacity: .6; }
+        .offline-notice { margin-top: 8px; padding: 6px 10px; border-radius: 6px; background: rgba(255,80,80,.12); border: 1px solid rgba(255,80,80,.45); color: #ff9b9b; font-size: 13px; }
+</style>
+</head>
+
+<body>
+    <!-- 公告界面 -->
+    <div id="announcement-modal" class="announcement-modal">
+        <div class="modal-content announcement-content">
+            <h3>📢 系统公告</h3>
+            <div id="announcement-text">
+                欢迎使用CS2内部赛管理工具！<br><br>
+                最新更新：<br>
+                1. 新增队伍名称自定义功能<br>
+                2. 修复了聊天窗口显示问题 
+                        <br>3. 新增掉线重连系统（修复中途退出后重新加入的严重BUG）<br>4. v1.2：赛制切换（BO1/BO3/BO5）· 观战模式 · 服务端骰子 · BP 计时与记录导出 · 图池预设<br><br>
+                使用过程中有任何问题，请联系Andycommander66。
+            </div>
+            <div class="modal-buttons">
+                <button id="close-announcement">我知道了</button>
+            </div>
+        </div>
+    </div>
+    <div class="container">
+        <!-- 房间管理界面 -->
+        <div id="room-management" class="room-management">
+            <h1>CS2内部赛管理工具</h1>
+            <p>创建房间或加入现有房间进行多人协作</p>
+
+            <div class="input-group">
+                <input type="text" id="username" placeholder="输入你的昵称" required>
+            </div>
+
+            <div class="input-group">
+                <button id="create-room-btn">创建新房间</button>
+            </div>
+
+            <div class="input-group">
+                <input type="text" id="room-id" placeholder="房间ID">
+                <button id="join-room-btn">加入房间</button>
+            </div>
+
+            <div class="input-group" style="margin-top:10px;">
+                <button id="watch-room-btn" style="background:linear-gradient(135deg,#4a5b6e,#2f3d4d);">以观战身份加入（只读）</button>
+            </div>
+
+            <div class="input-group" style="margin-top:10px;">
+                <button id="seat2-btn" style="background:linear-gradient(135deg,#6e4a5e,#4d2f3d);">🎮 本机第二玩家（同屏模式）</button>
+                <div style="font-size:12px;opacity:.65;margin-top:6px;">点此把「本窗口」切换为第二位玩家的临时身份（同一台电脑两人同屏用）</div>
+            </div>
+
+            <div id="error-message" style="color: var(--secondary); margin-top: 20px; display: none;"></div>
+
+            <div id="resume-box" class="resume-box" style="display:none;">
+                <span>上次的对局：<b id="resume-room-id"></b></span>
+                <button id="resume-join-btn" class="mini-btn">重新加入</button>
+                <button id="resume-clear-btn" class="mini-btn ghost">清空</button>
+            </div>
+        </div>
+
+        <!-- 房间信息和聊天区域 -->
+        <div id="room-info" class="room-info hidden">
+            <h3>房间信息</h3>
+            <p>房间ID: <span id="current-room-id" class="room-id"></span> <button id="copy-room-btn" class="mini-btn">复制</button></p>
+            <div id="offline-notice" class="offline-notice" style="display:none;">⚠ 有玩家掉线，等待重新连接…</div>
+            <p>在线用户: <span id="online-users-count">0</span></p>
+            <div id="users-list" class="online-users"></div>
+        </div>
+
+        <!-- 聊天工具 - 固定在右下角 -->
+        <div class="chat-container">
+            <div class="chat-window" id="chat-window">
+                <div class="chat-header" id="chat-header">
+                    <div class="chat-title">
+                        <i class="fas fa-comments"></i>
+                        <span>聊天</span>
+                        <span id="chat-unread" class="badge" style="display: none;">0</span>
+                    </div>
+                    <div class="chat-controls">
+                        <button class="chat-control-btn" id="minimize-chat">
+                            <i class="fas fa-window-minimize"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="chat-messages" id="chat-messages"></div>
+                <div class="chat-input">
+                    <input type="text" id="chat-message" placeholder="输入消息...">
+                    <button id="send-message">发送</button>
+                </div>
+            </div>
+            <div class="chat-minimized" id="chat-minimized" style="display: none;">
+                <i class="fas fa-comments"></i>
+                <span id="minimized-unread" class="unread-indicator" style="display: none;">0</span>
+            </div>
+        </div>
+
+        <!-- 主界面内容 -->
+        <div id="main-content" class="hidden">
+            <h1>CS2内部赛管理工具</h1>
+
+            <div class="status-bar highlight" id="status">
+                当前阶段：队员选择 - 请双方队长投掷骰子决定选人顺序
+            </div>
+
+            <!-- 编辑控制按钮 -->
+            <div class="edit-controls">
+                <button id="edit-players-btn" class="edit-btn">
+                    <i class="fas fa-users"></i> 修改队员名称
+                </button>
+                <button id="edit-team-names-btn" class="edit-btn"> <!-- 新增按钮 -->
+                    <i class="fas fa-shield-alt"></i> 修改队伍名称
+                </button>
+                <button id="edit-maps-btn" class="edit-btn">
+                    <i class="fas fa-map"></i> 修改地图池
+                </button>
+            </div>
+
+            <!-- 队员编辑模态框 -->
+            <div id="players-modal" class="edit-modal">
+                <div class="modal-content">
+                    <h3>修改队员名称</h3>
+                    <div id="players-edit-container">
+                        <!-- 动态生成队员编辑框 -->
+                    </div>
+                    <div class="modal-buttons">
+                        <button id="cancel-players-edit">取消</button>
+                        <button id="save-players-edit">保存</button>
+                        <button id="save-roster-btn" type="button" class="mini-btn">💾 存为常用名单</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 队伍名称编辑模态框 -->
+            <div id="team-names-modal" class="edit-modal">
+                <div class="modal-content">
+                    <h3>修改队伍名称</h3>
+                    <div id="team-names-edit-container">
+                        <div class="edit-item">
+                            <label>队伍A名称：</label>
+                            <input type="text" id="team1-name-input" class="team-name-input">
+                        </div>
+                        <div class="edit-item">
+                            <label>队伍B名称：</label>
+                            <input type="text" id="team2-name-input" class="team-name-input">
+                        </div>
+                    </div>
+                    <div class="modal-buttons">
+                        <button id="cancel-team-names-edit">取消</button>
+                        <button id="save-team-names-edit">保存</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 地图编辑模态框 -->
+            <div id="maps-modal" class="edit-modal">
+                <div class="modal-content">
+                    <h3>修改地图池</h3>
+                    <div id="maps-edit-container">
+                        <!-- 动态生成地图编辑框 -->
+                    </div>
+                    <div class="modal-buttons">
+                        <button id="preset-active-btn" type="button" class="mini-btn">填充：现役7图</button>
+                        <button id="preset-classic-btn" type="button" class="mini-btn">填充：经典图池</button>
+                        <button id="cancel-maps-edit">取消</button>
+                        <button id="save-maps-edit">保存</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 阶段指示器 -->
+            <div class="phase-indicator">
+                <span id="phase-player-selection" style="color: var(--secondary); font-weight: bold;">队员选择</span> |
+                <span id="phase-map-bp">地图BP</span> |
+                <span id="phase-summary">结算</span>
+            </div>
+
+            <div id="format-bar" style="text-align:center;margin:10px 0;font-size:14px;">赛制：<span id="format-label">BO3</span> <select id="format-select" style="display:none;margin-left:6px;background:#132030;color:inherit;border:1px solid rgba(120,180,255,.5);border-radius:6px;padding:2px 6px;"><option value="BO1">BO1</option><option value="BO3">BO3</option><option value="BO5">BO5</option></select> <span style="font-size:12px;opacity:.65;">（房主可在掷骰前切换）</span></div>
+
+            <!-- 队员选择部分 -->
+            <div id="player-selection-section" class="section fade-in">
+                <h2>队员选择</h2>
+
+                <div class="player-selection">
+                    <div class="captains-dice">
+                        <h3>队长骰子</h3>
+                        <!-- 明确的权限提示 -->
+                        <div class="dice-permission-notice" id="dice-permission-notice">
+                            只有房主可以投掷骰子！
+                        </div>
+                        <div style="display: flex; justify-content: space-around; margin-bottom: 20px;">
+                            <div>
+                                <p><span id="team1-captain-text">队伍A</span>队长 <span class="captain-badge">队长</span></p>
+                                <div class="dice-result" id="dice-result-1">?</div>
+                            </div>
+                            <div>
+                                <p><span id="team2-captain-text">队伍B</span>队长 <span class="captain-badge">队长</span></p>
+                                <div class="dice-result" id="dice-result-2">?</div>
+                            </div>
+                        </div>
+                        <button id="roll-dice-btn" class="dice-btn">投掷骰子</button>
+                        <p id="dice-winner" style="margin-top: 20px; font-weight: bold;"></p>
+                        <button id="start-selection-btn" class="dice-btn" disabled>开始选人</button>
+                    </div>
+
+                    <div class="players-container">
+                        <div class="available-players">
+                            <h3 id="available-count">候选队员（共0名）</h3>
+                            <div class="player-grid" id="available-players">
+                                <!-- v1.2.2：默认名单为空，点击「修改队员名称」添加 -->
+                            </div>
+                        </div>
+
+                        <div class="teams-container">
+                            <div class="team-players team1">
+                                <h3>队伍A</h3>
+                                <div class="player-grid" id="team1-players">
+                                    <!-- 动态填充 -->
+                                </div>
+                            </div>
+
+                            <div class="team-players team2">
+                                <h3>队伍B</h3>
+                                <div class="player-grid" id="team2-players">
+                                    <!-- 动态填充 -->
+                                </div>
+                            </div>
+                        </div>
+
+                        <div style="text-align: center; margin-top: 20px;">
+                            <p id="selection-turn" class="pulse">等待投掷骰子决定选人顺序...</p>
+                            <button id="confirm-selection-btn" class="dice-btn" disabled>确认选人</button>
+                            <button id="finish-selection-btn" class="dice-btn" disabled>完成选人，进入BP阶段</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 地图BP部分 (初始隐藏) -->
+            <div id="map-bp-section" class="hidden">
+                <div class="team-info">
+                    <div class="team first-hand" id="first-hand-team">
+                        <h3>先手队伍 <span class="badge badge-first">先选地图</span></h3>
+                        <p id="team1-name">队伍A</p>
+                        <p id="team1-action" class="pulse">当前操作：禁用地图</p>
+                    </div>
+                    <div class="team second-hand" id="second-hand-team">
+                        <h3>后手队伍 <span class="badge badge-second">后选地图</span></h3>
+                        <p id="team2-name">队伍B</p>
+                        <p id="team2-action">当前操作：等待</p>
+                    </div>
+                </div>
+
+                <div class="progress-bar">
+                    <div class="progress" id="progress" style="width: 0%"></div>
+                </div>
+                <div style="text-align:center;font-size:12px;opacity:.75;margin-top:6px;"><span id="step-timer">—</span></div>
+
+                <div class="map-section">
+                    <div class="map-pool">
+                        <h3>地图池 <span id="current-action-badge" class="badge badge-turn">请先手队伍禁用第一张地图</span></h3>
+                        <div class="map-grid" id="mapPool">
+                            <div class="map-card" data-map="de_dust2">de_dust2</div>
+                            <div class="map-card" data-map="de_inferno">de_inferno</div>
+                            <div class="map-card" data-map="de_nuke">de_nuke</div>
+                            <div class="map-card" data-map="de_overpass">de_overpass</div>
+                            <div class="map-card" data-map="de_ancient">de_ancient</div>
+                            <div class="map-card" data-map="de_train">de_train</div>
+                            <div class="map-card" data-map="de_mirage">de_mirage</div>
+                        </div>
+                    </div>
+
+                    <div class="selected-maps">
+                        <h3>已选/禁用地图</h3>
+                        <div id="mapSteps">
+                            <div class="map-step">
+                                <h4>图1：未选择</h4>
+                                <p>阵营选择：未选择</p>
+                            </div>
+                            <div class="map-step">
+                                <h4>图2：未选择</h4>
+                                <p>阵营选择：未选择</p>
+                            </div>
+                            <div class="map-step">
+                                <h4>图3：未选择</h4>
+                                <p>阵营选择：拼刀决定</p>
+                            </div>
+                            <div class="map-step">
+                                <h4>已禁用地图</h4>
+                                <div id="bannedMaps">无</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="action-buttons">
+                    <button id="confirmBtn" disabled="">确认选择</button>
+                    <button id="resetBtn">重置BP</button>
+                </div>
+            </div>
+
+            <!-- 结算页面 (初始隐藏) -->
+            <div id="summary-section" class="summary-section hidden">
+                <div class="summary-header">
+                    <h2>比赛信息汇总</h2>
+                    <p>以下是所有已确认的比赛信息</p>
+                </div>
+
+                <div class="teams-summary">
+                    <div class="team-summary-card team1-summary">
+                        <h3>队伍A 队员名单</h3>
+                        <div id="team1-summary-players" class="player-grid">
+                            <!-- 动态填充 -->
+                        </div>
+                    </div>
+
+                    <div class="team-summary-card team2-summary">
+                        <h3>队伍B 队员名单</h3>
+                        <div id="team2-summary-players" class="player-grid">
+                            <!-- 动态填充 -->
+                        </div>
+                    </div>
+                </div>
+
+                <div class="maps-summary">
+                    <h3>比赛地图及阵营分配</h3>
+                    <div id="summary-map-items"></div>
+                </div>
+
+                <div class="maps-summary" id="knife-block" style="display:none;">
+                    <h3>拼刀结果记录</h3>
+                    <div id="knife-status" style="margin:6px 0;opacity:.9;"></div>
+                    <div>
+                        <button id="knife-ct-btn" class="mini-btn">胜者从 CT 方开始</button>
+                        <button id="knife-t-btn" class="mini-btn">胜者从 T 方开始</button>
+                    </div>
+                </div>
+
+                <div class="maps-summary">
+                    <h3>BP 记录 <button id="copy-history-btn" class="mini-btn">复制</button> <span id="bp-duration" style="font-size:12px;opacity:.7;"></span></h3>
+                    <pre id="bp-history" style="white-space:pre-wrap;font-size:13px;line-height:1.6;opacity:.92;margin:8px 0 0;"></pre>
+                </div>
+
+                <div class="final-actions">
+                    <button id="back-to-bp-btn">返回BP阶段</button>
+                    <button id="restart-all-btn" class="restart-btn">重新开始</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 连接到Socket.io服务器
+        const socket = io({ path: (location.pathname.replace(/\/$/, '') || '') + '/socket.io' });
+        let currentUsername = '';
+        let currentRoomId = '';
+        let isHost = false;
+        let currentTeam = ''; // 记录当前用户所属队伍
+        let users = {}; // 存储房间内用户信息
+        let isSpectator = false;
+        let isSeat2 = false; // 本机第二玩家（同屏模式）标志
+        let chatExpanded = true;
+        let unreadMessages = 0;
+
+        // 页面加载完成后显示公告
+        document.addEventListener('DOMContentLoaded', function () {
+            const announcementModal = document.getElementById('announcement-modal');
+            const closeBtn = document.getElementById('close-announcement');
+
+            // 显示公告
+            announcementModal.style.display = 'flex';
+
+            // 关闭公告
+            closeBtn.addEventListener('click', function () {
+                announcementModal.style.display = 'none';
+            });
+        });
+
+        // 全局状态管理
+        const state = {
+            currentPhase: 'player-selection', // 'player-selection', 'map-bp', 'summary'
+            diceRolled: false,
+            diceResults: { team1: 0, team2: 0 },
+            selectionOrder: null, // 'team1' 或 'team2' 表示先选队员方
+            lastToPick: null,     // 最后选择队员的队伍（即地图BP的先手队伍）
+            firstHandTeam: null,  // 地图BP的先手队伍
+            secondHandTeam: null, // 地图BP的后手队伍
+            currentSelector: null,
+            matchFormat: 'BO3',
+            stepStartedAt: null,
+            bpStartedAt: null,
+            bpEndedAt: null,
+            history: [],
+            selectedPlayers: {
+                team1: [],
+                team2: []
+            },
+            availablePlayers: [],
+            teamNames: {
+                team1: "队伍A",
+                team2: "队伍B"
+            },
+            mapPool: [
+                "de_dust2", "de_inferno", "de_nuke",
+                "de_overpass", "de_ancient", "de_train", "de_mirage"
+            ],
+            selectedPlayer: null,
+
+            // 地图BP状态
+            currentStep: 0,
+            bannedMaps: [],
+            selectedMaps: {
+                map1: null,
+                map2: null,
+                map3: null,
+                map4: null,
+                map5: null
+            },
+            campChoices: {
+                // 存储选择阵营的队伍及其选择（v1.2 支持 BO5 四张选图）
+                map1: { team: null, choice: null },
+                map2: { team: null, choice: null },
+                map3: { team: null, choice: null },
+                map4: { team: null, choice: null }
+            },
+            selectedMap: null
+        };
+
+        // 地图池数据
+        const maps = [
+            "de_dust2", "de_inferno", "de_nuke",
+            "de_overpass", "de_ancient", "de_train", "de_mirage"
+        ];
+
+        // BP步骤定义
+        let steps = [];
+        function buildSteps(fmt) {
+            if (fmt === 'BO1') return [
+                { action: "ban", team: "first",  desc: "请先手队伍禁用地图（1/3）" },
+                { action: "ban", team: "second", desc: "请后手队伍禁用地图（1/3）" },
+                { action: "ban", team: "first",  desc: "请先手队伍禁用地图（2/3）" },
+                { action: "ban", team: "second", desc: "请后手队伍禁用地图（2/3）" },
+                { action: "ban", team: "first",  desc: "请先手队伍禁用地图（3/3）" },
+                { action: "ban", team: "second", desc: "请后手队伍禁用地图（3/3）" },
+                { action: "complete", team: "", desc: "BP完成，地图已确定（阵营：拼刀决定）" }
+            ];
+            if (fmt === 'BO5') return [
+                { action: "ban", team: "first",  desc: "请先手队伍禁用地图（1/2）" },
+                { action: "ban", team: "second", desc: "请后手队伍禁用地图（1/2）" },
+                { action: "select", team: "first",  desc: "请先手队伍选择图1" },
+                { action: "camp",   team: "second", desc: "请后手队伍为图1选择阵营" },
+                { action: "select", team: "second", desc: "请后手队伍选择图2" },
+                { action: "camp",   team: "first",  desc: "请先手队伍为图2选择阵营" },
+                { action: "select", team: "first",  desc: "请先手队伍选择图3" },
+                { action: "camp",   team: "second", desc: "请后手队伍为图3选择阵营" },
+                { action: "select", team: "second", desc: "请后手队伍选择图4" },
+                { action: "camp",   team: "first",  desc: "请先手队伍为图4选择阵营" },
+                { action: "ban", team: "first",  desc: "请先手队伍禁用地图（2/2）" },
+                { action: "ban", team: "second", desc: "请后手队伍禁用地图（2/2）" },
+                { action: "complete", team: "", desc: "BP完成，图5已确定" }
+            ];
+            // 默认 BO3
+            return [
+                { action: "ban", team: "first", desc: "请先手队伍禁用第一张地图" },
+                { action: "ban", team: "second", desc: "请后手队伍禁用第一张地图" },
+                { action: "select", team: "first", desc: "请先手队伍选择图1" },
+                { action: "camp", team: "second", desc: "请后手队伍为图1选择阵营" },
+                { action: "select", team: "second", desc: "请后手队伍选择图2" },
+                { action: "camp", team: "first", desc: "请先手队伍为图2选择阵营" },
+                { action: "ban", team: "second", desc: "请后手队伍禁用地图" },
+                { action: "ban", team: "first", desc: "请先手队伍禁用地图" },
+                { action: "complete", team: "", desc: "BP完成，图3已确定" }
+            ];
+        }
+        function formatMapCount(fmt) { return fmt === 'BO5' ? 5 : (fmt === 'BO1' ? 1 : 3); }
+        steps = buildSteps('BO3');
+
+        // DOM元素
+        const elements = {
+            // 房间管理元素
+            roomManagement: document.getElementById('room-management'),
+            createRoomBtn: document.getElementById('create-room-btn'),
+            joinRoomBtn: document.getElementById('join-room-btn'),
+            usernameInput: document.getElementById('username'),
+            roomIdInput: document.getElementById('room-id'),
+            errorMessage: document.getElementById('error-message'),
+            mainContent: document.getElementById('main-content'),
+            roomInfo: document.getElementById('room-info'),
+            currentRoomId: document.getElementById('current-room-id'),
+            onlineUsersCount: document.getElementById('online-users-count'),
+            usersList: document.getElementById('users-list'),
+
+            // 聊天元素
+            chatContainer: document.querySelector('.chat-container'),
+            chatWindow: document.getElementById('chat-window'),
+            chatHeader: document.getElementById('chat-header'),
+            chatMessages: document.getElementById('chat-messages'),
+            chatMessageInput: document.getElementById('chat-message'),
+            sendMessageBtn: document.getElementById('send-message'),
+            chatUnread: document.getElementById('chat-unread'),
+            minimizeChatBtn: document.getElementById('minimize-chat'),
+            chatMinimized: document.getElementById('chat-minimized'),
+            minimizedUnread: document.getElementById('minimized-unread'),
+
+            // 编辑功能元素
+            editPlayersBtn: document.getElementById('edit-players-btn'),
+            editMapsBtn: document.getElementById('edit-maps-btn'),
+            playersModal: document.getElementById('players-modal'),
+            editTeamNamesBtn: document.getElementById('edit-team-names-btn'),
+            teamNamesModal: document.getElementById('team-names-modal'),
+            team1NameInput: document.getElementById('team1-name-input'),
+            team2NameInput: document.getElementById('team2-name-input'),
+            team1NameEl: document.getElementById('team1-name'),
+            team2NameEl: document.getElementById('team2-name'),
+            phasePlayerSelection: document.getElementById('phase-player-selection'),
+            mapsModal: document.getElementById('maps-modal'),
+            playersEditContainer: document.getElementById('players-edit-container'),
+            mapsEditContainer: document.getElementById('maps-edit-container'),
+            cancelPlayersEdit: document.getElementById('cancel-players-edit'),
+            savePlayersEdit: document.getElementById('save-players-edit'),
+            cancelTeamNamesEdit: document.getElementById('cancel-team-names-edit'),
+            saveTeamNamesEdit: document.getElementById('save-team-names-edit'),
+            cancelMapsEdit: document.getElementById('cancel-maps-edit'),
+            saveMapsEdit: document.getElementById('save-maps-edit'),
+
+            // 通用元素
+            statusEl: document.getElementById('status'),
+
+            // 队员选择元素
+            diceResult1: document.getElementById('dice-result-1'),
+            diceResult2: document.getElementById('dice-result-2'),
+            rollDiceBtn: document.getElementById('roll-dice-btn'),
+            diceWinner: document.getElementById('dice-winner'),
+            startSelectionBtn: document.getElementById('start-selection-btn'),
+            availablePlayersEl: document.getElementById('available-players'),
+            team1PlayersEl: document.getElementById('team1-players'),
+            team2PlayersEl: document.getElementById('team2-players'),
+            selectionTurnEl: document.getElementById('selection-turn'),
+            confirmSelectionBtn: document.getElementById('confirm-selection-btn'),
+            finishSelectionBtn: document.getElementById('finish-selection-btn'),
+            playerSelectionSection: document.getElementById('player-selection-section'),
+            dicePermissionNotice: document.getElementById('dice-permission-notice'),
+
+            // 地图BP元素
+            mapBpSection: document.getElementById('map-bp-section'),
+            progressEl: document.getElementById('progress'),
+            mapPoolEl: document.getElementById('mapPool'),
+            confirmBtn: document.getElementById('confirmBtn'),
+            resetBtn: document.getElementById('resetBtn'),
+            bannedMapsEl: document.getElementById('bannedMaps'),
+            mapSteps: document.getElementById('mapSteps'),
+            team1Action: document.getElementById('team1-action'),
+            team2Action: document.getElementById('team2-action'),
+            team1Name: document.getElementById('team1-name'),
+            team2Name: document.getElementById('team2-name'),
+            firstHandTeam: document.getElementById('first-hand-team'),
+            secondHandTeam: document.getElementById('second-hand-team'),
+            currentActionBadge: document.getElementById('current-action-badge'),
+
+            // 阶段指示器
+            phasePlayerSelection: document.getElementById('phase-player-selection'),
+            phaseMapBp: document.getElementById('phase-map-bp'),
+            phaseSummary: document.getElementById('phase-summary'),
+
+            // 结算页面元素
+            summarySection: document.getElementById('summary-section'),
+            team1SummaryPlayers: document.getElementById('team1-summary-players'),
+            team2SummaryPlayers: document.getElementById('team2-summary-players'),
+            summaryMap1: document.getElementById('summary-map1'),
+            summaryMap2: document.getElementById('summary-map2'),
+            summaryMap3: document.getElementById('summary-map3'),
+            summaryTeam1Map1: document.getElementById('summary-team1-map1'),
+            summaryTeam2Map1: document.getElementById('summary-team2-map1'),
+            summaryTeam1Map2: document.getElementById('summary-team1-map2'),
+            summaryTeam2Map2: document.getElementById('summary-team2-map2'),
+            summaryBannedMaps: document.getElementById('summary-banned-maps'),
+            backToBpBtn: document.getElementById('back-to-bp-btn'),
+            restartAllBtn: document.getElementById('restart-all-btn')
+        };
+
+        // 初始化
+        function resetBpFields() {
+            state.bannedMaps = [];
+            state.selectedMaps = { map1: null, map2: null, map3: null, map4: null, map5: null };
+            state.campChoices = {
+                map1: { team: null, choice: null },
+                map2: { team: null, choice: null },
+                map3: { team: null, choice: null },
+                map4: { team: null, choice: null }
+            };
+            state.currentStep = 0;
+            state.selectedMap = null;
+            state.stepStartedAt = null;
+            state.bpStartedAt = null;
+            state.bpEndedAt = null;
+            state.history = [];
+        }
+
+        function setKnifeResult(v) {
+            if (isSpectator || !stateSynced) return;
+            const idx = formatMapCount(state.matchFormat || 'BO3');
+            if (!state.selectedMaps['map' + idx]) return;
+            state.campChoices['map' + idx] = { team: 'knife', choice: v };
+            state.history = state.history || [];
+            state.history.push(`🔪 拼刀结果：胜者从 ${v.toUpperCase()} 方开始`);
+            socket.emit('updateState', state);
+            updateSummaryPage();
+        }
+
+        function initExtraV12() {
+            isSeat2 = isSeat2Mode();
+            // 「存为常用名单」按钮（v1.2.3）
+            const saveRosterBtn = document.getElementById('save-roster-btn');
+            if (saveRosterBtn) saveRosterBtn.addEventListener('click', saveRosterAndSetCommon);
+            // 本机第二玩家入口
+            const seat2Btn = document.getElementById('seat2-btn');
+            if (seat2Btn) {
+                if (isSeat2) seat2Btn.textContent = '🎮 本机第二玩家模式（已启用）';
+                seat2Btn.addEventListener('click', () => {
+                    if (!isSeat2Mode()) {
+                        try { sessionStorage.setItem('bp_seat2', '1'); } catch (e) {}
+                        location.reload();
+                    } else {
+                        showError('本窗口已处于「本机第二玩家」模式（临时身份，仅本标签页有效）');
+                    }
+                });
+            }
+            // 观战入口
+            const watchBtn = document.getElementById('watch-room-btn');
+            if (watchBtn) watchBtn.addEventListener('click', () => joinRoom({ spectator: true }));
+            // 赛制切换（房主、掷骰前）
+            const fmtSel = document.getElementById('format-select');
+            if (fmtSel) fmtSel.addEventListener('change', () => {
+                if (!isHost || isSpectator || state.diceRolled || state.currentPhase !== 'player-selection') { updateUI(); return; }
+                state.matchFormat = fmtSel.value;
+                steps = buildSteps(state.matchFormat);
+                resetBpFields();
+                socket.emit('updateState', state);
+                updateUI();
+            });
+            // BP 计时器（仅展示，不强制）
+            setInterval(() => {
+                const el = document.getElementById('step-timer');
+                if (!el) return;
+                if (state.currentPhase === 'map-bp' && state.stepStartedAt) {
+                    const s = Math.max(0, Math.floor((Date.now() - state.stepStartedAt) / 1000));
+                    el.textContent = `本步已用 ${s}s（建议 ≤60s）`;
+                } else if (state.currentPhase === 'map-bp') {
+                    el.textContent = '—';
+                } else { el.textContent = ''; }
+            }, 1000);
+            // 拼刀结果按钮
+            const kct = document.getElementById('knife-ct-btn');
+            const kt = document.getElementById('knife-t-btn');
+            if (kct) kct.addEventListener('click', () => setKnifeResult('ct'));
+            if (kt) kt.addEventListener('click', () => setKnifeResult('t'));
+            // 复制 BP 记录
+            const cp = document.getElementById('copy-history-btn');
+            if (cp) cp.addEventListener('click', () => {
+                const text = (state.history || []).join('\n');
+                try { navigator.clipboard.writeText(text); } catch (e) {}
+                addChatMessage({ username: '系统', message: 'BP 记录已复制到剪贴板', team: 'system' });
+            });
+            // 图池预设
+            const fillPreset = (list) => {
+                const inputs = elements.mapsEditContainer.querySelectorAll('.map-edit-input');
+                inputs.forEach((inp, i) => { if (list[i]) inp.value = list[i]; });
+            };
+            const pa = document.getElementById('preset-active-btn');
+            if (pa) pa.addEventListener('click', () => fillPreset(['de_ancient', 'de_anubis', 'de_dust2', 'de_inferno', 'de_mirage', 'de_nuke', 'de_train']));
+            const pc2 = document.getElementById('preset-classic-btn');
+            if (pc2) pc2.addEventListener('click', () => fillPreset(['de_dust2', 'de_inferno', 'de_mirage', 'de_nuke', 'de_overpass', 'de_train', 'de_vertigo']));
+        }
+
+        function init() {
+            // 绑定房间管理事件
+            elements.createRoomBtn.addEventListener('click', createRoom);
+            elements.joinRoomBtn.addEventListener('click', () => joinRoom());
+
+            // 绑定聊天事件
+            elements.sendMessageBtn.addEventListener('click', sendChatMessage);
+            elements.chatMessageInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') sendChatMessage();
+            });
+
+            // 聊天窗口最小化/恢复
+            elements.minimizeChatBtn.addEventListener('click', toggleChatMinimize);
+            elements.chatMinimized.addEventListener('click', toggleChatMinimize);
+
+            // 绑定编辑功能事件
+            elements.editPlayersBtn.addEventListener('click', openPlayersEditModal);
+            elements.editTeamNamesBtn.addEventListener('click', openTeamNamesEditModal);
+            elements.editMapsBtn.addEventListener('click', openMapsEditModal);
+            elements.cancelPlayersEdit.addEventListener('click', closePlayersEditModal);
+            elements.cancelTeamNamesEdit.addEventListener('click', closeTeamNamesEditModal);
+            elements.cancelMapsEdit.addEventListener('click', closeMapsEditModal);
+            elements.savePlayersEdit.addEventListener('click', savePlayersEdit);
+            elements.saveTeamNamesEdit.addEventListener('click', saveTeamNamesEdit);
+            elements.saveMapsEdit.addEventListener('click', saveMapsEdit);
+
+            // 绑定主功能事件
+            elements.rollDiceBtn.addEventListener('click', rollDice);
+            elements.startSelectionBtn.addEventListener('click', startPlayerSelection);
+            elements.confirmSelectionBtn.addEventListener('click', confirmPlayerSelection);
+            elements.finishSelectionBtn.addEventListener('click', finishPlayerSelection);
+            elements.confirmBtn.addEventListener('click', handleMapConfirm);
+            elements.resetBtn.addEventListener('click', resetBP);
+            elements.backToBpBtn.addEventListener('click', backToBPStage);
+            elements.restartAllBtn.addEventListener('click', restartAll);
+
+            // 初始化Socket事件监听
+            initSocketEvents();
+
+            // 会话恢复与复制房间号
+            initSessionResume();
+
+            // v1.2：观战/赛制/计时/拼刀/预设
+            initExtraV12();
+        }
+
+        // 房间管理功能
+        function createRoom() {
+            const username = elements.usernameInput.value.trim();
+            if (!username) {
+                showError('请输入你的昵称');
+                return;
+            }
+
+            currentUsername = username;
+            socket.emit('createRoom', { username, playerId: getPlayerId() });
+        }
+
+        function joinRoom(opts = {}) {
+            const spectator = !!opts.spectator;
+            let username = elements.usernameInput.value.trim();
+            const roomId = elements.roomIdInput.value.trim();
+            if (!username && !spectator) { showError('请输入你的昵称'); return; }
+            if (!roomId) { showError('请输入房间ID'); return; }
+            if (!username) username = '观众' + Math.floor(1000 + Math.random() * 9000);
+            currentUsername = username;
+            socket.emit('joinRoom', { roomId, username, playerId: getPlayerId(), spectator });
+        }
+
+        function showError(message) {
+            elements.errorMessage.textContent = message;
+            elements.errorMessage.style.display = 'block';
+
+            setTimeout(() => {
+                elements.errorMessage.style.display = 'none';
+            }, 3000);
+        }
+
+        function enterRoom(roomId, team = 'team1') {
+            currentRoomId = roomId;
+            currentTeam = team; // 记录当前用户所属队伍
+            elements.currentRoomId.textContent = roomId;
+            elements.roomManagement.classList.add('hidden');
+            elements.roomInfo.classList.remove('hidden');
+            elements.mainContent.classList.remove('hidden');
+        }
+
+        // ---------- UC 修复：身份 & 会话持久化 ----------
+        let stateSynced = false; // 是否已收到服务器权威状态
+        function isSeat2Mode() {
+            // 本机第二玩家：URL 带 #seat2 或本标签页已开启 —— 身份仅存于本标签页
+            try {
+                if (sessionStorage.getItem('bp_seat2') === '1') return true;
+                if (/(^|[#&])seat2($|[&])/.test(location.hash)) { sessionStorage.setItem('bp_seat2', '1'); return true; }
+            } catch (e) {}
+            return false;
+        }
+        function getPlayerId() {
+            if (isSeat2Mode()) {
+                // 同屏模式：每个标签页各自一把临时钥匙（刷新不丢，关掉即忘）
+                let sid = null;
+                try { sid = sessionStorage.getItem('bp_seat2_id'); } catch (e) {}
+                if (!sid) {
+                    sid = (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : ('p-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2));
+                    try { sessionStorage.setItem('bp_seat2_id', sid); } catch (e) {}
+                }
+                return sid;
+            }
+            let id = localStorage.getItem('bp_player_id');
+            if (!id) {
+                id = (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : ('p-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2));
+                localStorage.setItem('bp_player_id', id);
+            }
+            return id;
+        }
+        function saveSession(roomId, username) {
+            if (isSeat2Mode()) return; // 第二玩家不覆盖主身份的「上次对局」
+            try {
+                localStorage.setItem('bp_session', JSON.stringify({ roomId, username, ts: Date.now() }));
+                localStorage.setItem('bp_last_name', username || '');
+            } catch (e) {}
+        }
+        function clearSession() { try { localStorage.removeItem('bp_session'); } catch (e) {} }
+
+        // UC 修复：会话恢复 + 复制房间号
+        function initSessionResume() {
+            if (isSeat2Mode()) return; // 第二玩家不使用主身份的「重新加入」
+            const box = document.getElementById('resume-box');
+            const roomLabel = document.getElementById('resume-room-id');
+            const lastName = localStorage.getItem('bp_last_name');
+            if (lastName && !elements.usernameInput.value) elements.usernameInput.value = lastName;
+            let session = null;
+            try { session = JSON.parse(localStorage.getItem('bp_session') || 'null'); } catch (e) {}
+            if (session && session.roomId) {
+                if (box) { box.style.display = ''; roomLabel.textContent = session.roomId; }
+                if (elements.roomIdInput && !elements.roomIdInput.value) elements.roomIdInput.value = session.roomId;
+            }
+            const joinBtn = document.getElementById('resume-join-btn');
+            if (joinBtn) joinBtn.addEventListener('click', () => joinRoom());
+            const clearBtn = document.getElementById('resume-clear-btn');
+            if (clearBtn) clearBtn.addEventListener('click', () => { clearSession(); if (box) box.style.display = 'none'; });
+            const copyBtn = document.getElementById('copy-room-btn');
+            if (copyBtn) copyBtn.addEventListener('click', () => {
+                try { navigator.clipboard.writeText(currentRoomId); } catch (e) {}
+                addChatMessage({ username: '系统', message: '房间号已复制：' + currentRoomId, team: 'system' });
+            });
+        }
+
+        // 聊天功能
+        function toggleChatMinimize() {
+            chatExpanded = !chatExpanded;
+
+            if (chatExpanded) {
+                // 恢复聊天窗口
+                elements.chatWindow.style.display = 'block';
+                elements.chatMinimized.style.display = 'none';
+                // 重置未读消息计数
+                unreadMessages = 0;
+                updateUnreadIndicator();
+            } else {
+                // 最小化聊天窗口 - 固定在右下角
+                elements.chatWindow.style.display = 'none';
+                elements.chatMinimized.style.display = 'flex';
+            }
+        }
+
+        function updateUnreadIndicator() {
+            if (unreadMessages > 0) {
+                elements.chatUnread.textContent = unreadMessages;
+                elements.chatUnread.style.display = 'inline-block';
+                elements.minimizedUnread.textContent = unreadMessages;
+                elements.minimizedUnread.style.display = 'flex';
+
+                // 如果是最小化状态，添加闪烁效果
+                if (!chatExpanded) {
+                    elements.chatMinimized.classList.add('blink');
+                } else {
+                    elements.chatMinimized.classList.remove('blink');
+                }
+            } else {
+                elements.chatUnread.style.display = 'none';
+                elements.minimizedUnread.style.display = 'none';
+                elements.chatMinimized.classList.remove('blink');
+            }
+        }
+
+
+        function sendChatMessage() {
+            const message = elements.chatMessageInput.value.trim();
+            if (!message) return;
+
+            socket.emit('sendMessage', message);
+            elements.chatMessageInput.value = '';
+        }
+
+        function addChatMessage(data) {
+            const messageEl = document.createElement('div');
+            messageEl.className = `message ${data.team || 'system'}`;
+
+            if (data.team) {
+                messageEl.innerHTML = `
+                    <span class="username">${data.username}</span>
+                    <span class="text">${data.message}</span>
+                `;
+            } else {
+                messageEl.innerHTML = `
+                    <span class="text">${data.message}</span>
+                `;
+            }
+
+            elements.chatMessages.appendChild(messageEl);
+            elements.chatMessages.scrollTop = elements.chatMessages.scrollHeight;
+
+            // 如果聊天窗口是最小化状态，增加未读计数
+            if (!chatExpanded) {
+                unreadMessages++;
+                updateUnreadIndicator();
+            }
+        }
+
+        // 编辑队员、队伍和地图功能
+        function openPlayersEditModal() {
+            // 只有房主可以编辑
+            if (!isHost) {
+                showError('只有房主可以修改队员名称');
+                return;
+            }
+
+            // 清空容器
+            elements.playersEditContainer.innerHTML = '';
+
+            // 生成队员编辑框
+            state.availablePlayers.forEach((player, index) => {
+                const editItem = document.createElement('div');
+                editItem.className = 'edit-item';
+                editItem.innerHTML = `
+                    <label>${index + 1}.</label>
+                    <input type="text" class="player-edit-input" value="${player}" data-index="${index}">
+                `;
+                elements.playersEditContainer.appendChild(editItem);
+            });
+
+            // v1.2.2：空名单也可直接添加行
+            const addRow = document.createElement('div');
+            addRow.className = 'edit-item';
+            addRow.innerHTML = '<button id="add-player-row-btn" type="button" class="mini-btn">＋ 添加一名队员</button>';
+            elements.playersEditContainer.appendChild(addRow);
+            addRow.querySelector('button').addEventListener('click', addPlayerEditRow);
+
+            // 显示模态框
+            elements.playersModal.classList.add('active');
+        }
+
+        function closePlayersEditModal() {
+            elements.playersModal.classList.remove('active');
+        }
+
+        function savePlayersEdit() {
+            if (isSpectator) { showError('观战模式为只读'); return; }
+            const inputs = elements.playersEditContainer.querySelectorAll('.player-edit-input');
+            // v1.2.2：空白行直接丢弃（清空某行 = 删除该队员）
+            const newPlayers = Array.from(inputs).map(input => input.value.trim()).filter(Boolean);
+
+            // 更新状态
+            state.availablePlayers = newPlayers;
+
+            // 同步到服务器
+            socket.emit('updateState', state);
+
+            // 关闭模态框
+            closePlayersEditModal();
+        }
+
+        function saveRosterAndSetCommon() {
+            if (isSpectator) { showError('观战模式为只读'); return; }
+            if (!isHost) { showError('只有房主可以修改名单'); return; }
+            const inputs = elements.playersEditContainer.querySelectorAll('.player-edit-input');
+            const edited = Array.from(inputs).map(i => i.value.trim()).filter(Boolean);
+            const picked = [];
+            ['team1', 'team2'].forEach(t => (state.selectedPlayers[t] || []).forEach(p => {
+                const name = String(p).replace(/\s*\(队长\)\s*$/, '').trim();
+                if (name && !name.includes('等待队员加入')) picked.push(name);
+            }));
+            const captains = Object.values(users).map(u => u.username);
+            const pool = [];
+            edited.forEach(n => { if (!pool.includes(n)) pool.push(n); });
+            picked.forEach(n => { if (!captains.includes(n) && !pool.includes(n)) pool.push(n); });
+            if (!pool.length) { showError('名单为空：请先添加队员或完成选人'); return; }
+            state.availablePlayers = edited;
+            socket.emit('updateState', state);
+            socket.emit('saveRoster', { players: pool });
+            closePlayersEditModal();
+        }
+
+        function addPlayerEditRow() {
+            const btn = document.getElementById('add-player-row-btn');
+            const btnRow = btn ? btn.parentElement : null;
+            const item = document.createElement('div');
+            item.className = 'edit-item';
+            item.innerHTML = '<label></label><input type="text" class="player-edit-input" value="">';
+            if (btnRow) elements.playersEditContainer.insertBefore(item, btnRow);
+            else elements.playersEditContainer.appendChild(item);
+            renumberPlayerRows();
+            const inputs = elements.playersEditContainer.querySelectorAll('.player-edit-input');
+            if (inputs.length) inputs[inputs.length - 1].focus();
+        }
+        function renumberPlayerRows() {
+            let n = 1;
+            elements.playersEditContainer.querySelectorAll('.edit-item').forEach(it => {
+                const lab = it.querySelector('label');
+                if (lab && it.querySelector('.player-edit-input')) lab.textContent = (n++) + '.';
+            });
+        }
+
+        function openTeamNamesEditModal() {
+            if (!isHost) {
+                showError('只有房主可以修改队伍名称');
+                return;
+            }
+
+            // 填充当前队伍名称
+            elements.team1NameInput.value = state.teamNames.team1;
+            elements.team2NameInput.value = state.teamNames.team2;
+
+            // 显示模态框
+            elements.teamNamesModal.classList.add('active');
+        }
+
+        // 关闭队伍名称编辑模态框
+        function closeTeamNamesEditModal() {
+            elements.teamNamesModal.classList.remove('active');
+        }
+
+        // 保存队伍名称修改
+        function saveTeamNamesEdit() {
+            if (isSpectator) { showError('观战模式为只读'); return; }
+            const team1Name = elements.team1NameInput.value.trim() || "队伍A";
+            const team2Name = elements.team2NameInput.value.trim() || "队伍B";
+
+            // 更新状态
+            state.teamNames.team1 = team1Name;
+            state.teamNames.team2 = team2Name;
+
+            // 同步到服务器
+            socket.emit('updateState', state);
+
+            // 关闭模态框
+            closeTeamNamesEditModal();
+        }
+
+        function updateTeamNamesDisplay() {
+            // 更新BP阶段的队伍名称
+            if (state.firstHandTeam && state.secondHandTeam) {
+                elements.team1NameEl.textContent = state.firstHandTeam === 'team1'
+                    ? state.teamNames.team1
+                    : state.teamNames.team2;
+                elements.team2NameEl.textContent = state.secondHandTeam === 'team1'
+                    ? state.teamNames.team1
+                    : state.teamNames.team2;
+            } else {
+                // 队员选择阶段显示默认名称
+                elements.team1NameEl.textContent = state.teamNames.team1;
+                elements.team2NameEl.textContent = state.teamNames.team2;
+            }
+
+            // 更新队伍选择区域的标题
+            document.getElementById('team1-captain-text').textContent = state.teamNames.team1;
+            document.getElementById('team2-captain-text').textContent = state.teamNames.team2;
+            document.querySelector('.team-players.team1 h3').textContent = state.teamNames.team1;
+            document.querySelector('.team-players.team2 h3').textContent = state.teamNames.team2;
+
+            // 更新结算页面的队伍名称
+            if (elements.summaryTeam1Name) {
+                elements.summaryTeam1Name.textContent = `${state.teamNames.team1} (${state.selectedPlayers.team1.join(', ')})`;
+                elements.summaryTeam2Name.textContent = `${state.teamNames.team2} (${state.selectedPlayers.team2.join(', ')})`;
+            }
+
+            // 更新选择顺序提示
+            if (state.currentSelector) {
+                const teamName = state.currentSelector === 'team1'
+                    ? state.teamNames.team1
+                    : state.teamNames.team2;
+                elements.selectionTurnEl.textContent = `当前轮到 ${teamName} 选择队员`;
+            }
+        }
+
+        function openMapsEditModal() {
+            // 只有房主可以编辑
+            if (!isHost) {
+                showError('只有房主可以修改地图池');
+                return;
+            }
+
+            // 清空容器
+            elements.mapsEditContainer.innerHTML = '';
+
+            // 生成地图编辑框
+            maps.forEach((map, index) => {
+                const editItem = document.createElement('div');
+                editItem.className = 'edit-item';
+                editItem.innerHTML = `
+                    <label>${index + 1}.</label>
+                    <input type="text" class="map-edit-input" value="${map}" data-index="${index}">
+                `;
+                elements.mapsEditContainer.appendChild(editItem);
+            });
+
+            // 显示模态框
+            elements.mapsModal.classList.add('active');
+        }
+
+        function closeMapsEditModal() {
+            elements.mapsModal.classList.remove('active');
+        }
+
+        function saveMapsEdit() {
+            if (isSpectator) { showError('观战模式为只读'); return; }
+            const inputs = elements.mapsEditContainer.querySelectorAll('.map-edit-input');
+            const newMaps = Array.from(inputs).map(input => {
+                return input.value.trim() || `de_map${parseInt(input.dataset.index) + 1}`;
+            });
+
+            // 更新地图池
+            maps.length = 0;
+            maps.push(...newMaps);
+
+            // 重置地图BP状态（v1.2）
+            resetBpFields();
+
+            state.mapPool = newMaps; // 更新state而非全局变量
+            // 同步到服务器
+            socket.emit('updateState', state);
+
+            // 关闭模态框
+            closeMapsEditModal();
+        }
+
+
+        // Socket事件监听
+        function initSocketEvents() {
+            socket.on('roomCreated', (data) => {
+                isHost = true;
+                isSpectator = false;
+                stateSynced = false;
+                enterRoom(data.roomId, data.team || 'team1'); // 房主默认加入队伍A
+                saveSession(data.roomId, currentUsername);
+                addChatMessage({ username: '系统', message: `你创建了房间 ${data.roomId}`, team: 'system' });
+                addChatMessage({ username: '系统', message: `你已加入队伍A并成为队长`, team: 'system' });
+            });
+
+            socket.on('roomJoined', (data) => {
+                stateSynced = false;
+                if (data.username) currentUsername = data.username;
+                isSpectator = (data.role === 'spectator');
+                isHost = (data.role === 'host');
+                enterRoom(data.roomId, data.team || (isSpectator ? 'spectator' : 'team2'));
+                if (!isSpectator) saveSession(data.roomId, currentUsername);
+                if (isSeat2) {
+                    addChatMessage({ username: '系统', message: '你以「本机第二玩家」身份进入（临时身份，仅本标签页有效）', team: 'system' });
+                }
+                if (data.rejoin) {
+                    addChatMessage({ username: '系统', message: `你已重新连接回房间 ${data.roomId}`, team: 'system' });
+                } else if (isSpectator) {
+                    addChatMessage({ username: '系统', message: `你已以观战身份进入房间 ${data.roomId}（只读）`, team: 'system' });
+                } else {
+                    addChatMessage({ username: '系统', message: `你已加入房间 ${data.roomId}`, team: 'system' });
+                    addChatMessage({ username: '系统', message: `你已加入队伍B并成为队长`, team: 'system' });
+                }
+            });
+
+            socket.on('userJoined', (data) => {
+                addChatMessage({
+                    username: '系统',
+                    message: data.team
+                        ? `${data.username} 加入了房间，成为 ${data.team === 'team1' ? '队伍A' : '队伍B'} 队长`
+                        : `${data.username} 加入了观战`,
+                    team: 'system'
+                });
+                // 队长归属由服务器维护（不再由客户端覆写状态）
+            });
+
+            socket.on('userLeft', (data) => {
+                addChatMessage({ username: '系统', message: `${data.username} 离开了房间`, team: 'system' });
+            });
+
+            socket.on('userOffline', (data) => {
+                addChatMessage({ username: '系统', message: `${data.username} 掉线了，等待重新连接…`, team: 'system' });
+            });
+
+            socket.on('userRejoined', (data) => {
+                addChatMessage({ username: '系统', message: `${data.username} 重新连接成功 ✅`, team: 'system' });
+            });
+
+            socket.on('kicked', (data) => {
+                showError(data && data.message ? data.message : '该身份已在其他窗口重新连接');
+            });
+
+            socket.on('newHost', (data) => {
+                addChatMessage({ username: '系统', message: `${data.username} 成为了新的房主`, team: 'system' });
+                if (data.username === currentUsername) {
+                    isHost = true;
+                    // 更新权限提示
+                    updatePermissionUI();
+                }
+            });
+
+            socket.on('updateUsers', (roomUsers) => {
+                users = roomUsers;
+                const arr = Object.values(users);
+                const onlineCount = arr.filter(u => u.online !== false).length;
+                elements.onlineUsersCount.textContent = onlineCount;
+
+                // 更新用户列表，显示团队信息（支持掉线标记）
+                let usersListHTML = '';
+                arr.forEach(user => {
+                    usersListHTML += `
+                        <div style="${user.online === false ? 'opacity:.45;' : ''}">
+                            <span class="user-team-indicator user-${user.team}"></span>
+                            ${user.username} ${user.role === 'host' ? '(房主)' : (user.role === 'spectator' ? '(观战)' : '')} ${user.online === false ? '(掉线)' : ''}
+                        </div>
+                    `;
+                });
+                elements.usersList.innerHTML = usersListHTML;
+
+                // 掉线提示横幅
+                const offlineNotice = document.getElementById('offline-notice');
+                if (offlineNotice) {
+                    const hasOffline = arr.some(u => u.online === false);
+                    offlineNotice.style.display = (hasOffline && arr.length >= 2) ? 'block' : 'none';
+                }
+
+                // 根据用户数量和权限更新UI
+                updatePermissionUI();
+            });
+
+            socket.on('updateState', (newState) => {
+                // 以服务器状态为准，完整替换（避免陈旧客户端局部覆盖）
+                if (!newState || typeof newState !== 'object') return;
+                const prevDiceRolled = state.diceRolled;
+                Object.keys(state).forEach(k => { if (!(k in newState)) delete state[k]; });
+                Object.assign(state, newState);
+                stateSynced = true;
+                if (!prevDiceRolled && state.diceRolled) animateDiceResults(state.diceResults); // v1.2：掷骰动画
+                // 更新UI
+                updateUI();
+            });
+
+            socket.on('newMessage', (data) => {
+                // 为消息添加团队标识
+                let team = '';
+                Object.values(users).forEach(user => {
+                    if (user.username === data.username) {
+                        team = user.team;
+                    }
+                });
+                addChatMessage({ ...data, team });
+            });
+
+            socket.on('rosterSaved', (data) => {
+                const names = (data && Array.isArray(data.players)) ? data.players.join('、') : '';
+                addChatMessage({ username: '系统', message: '已保存为常用名单（共 ' + ((data && data.count) || 0) + ' 名）：' + names, team: 'system' });
+            });
+
+            socket.on('error', (message) => {
+                showError(message);
+            });
+        }
+
+        // 更新权限相关UI
+        function updatePermissionUI() {
+            const arr = Object.values(users);
+            const online = arr.filter(u => u.online !== false);
+            const seated = arr.filter(u => u.role !== 'spectator');
+            const hostOnline = arr.some(u => u.role === 'host' && u.online !== false);
+            const canRoll = !state.diceRolled && seated.length >= 2 && (isHost || !hostOnline) && stateSynced && !isSpectator;
+            elements.rollDiceBtn.disabled = !canRoll;
+            if (isSpectator) {
+                elements.dicePermissionNotice.textContent = "你正在观战（只读）";
+                elements.dicePermissionNotice.style.color = "var(--highlight)";
+            } else if (isHost) {
+                elements.dicePermissionNotice.textContent = "你是房主，可以投掷骰子";
+                elements.dicePermissionNotice.style.color = "var(--select-green)";
+            } else if (!hostOnline && seated.length >= 2) {
+                elements.dicePermissionNotice.textContent = "房主已掉线，由你代投骰子";
+                elements.dicePermissionNotice.style.color = "var(--highlight)";
+            } else {
+                elements.dicePermissionNotice.textContent = "只有房主可以投掷骰子";
+                elements.dicePermissionNotice.style.color = "var(--highlight)";
+            }
+            // 赛制选择可见性
+            const fmtSel = document.getElementById('format-select');
+            const fmtLabel = document.getElementById('format-label');
+            const showFmt = isHost && !isSpectator && state.currentPhase === 'player-selection' && !state.diceRolled;
+            if (fmtSel) { fmtSel.style.display = showFmt ? '' : 'none'; fmtSel.value = state.matchFormat || 'BO3'; }
+            if (fmtLabel) { fmtLabel.textContent = state.matchFormat || 'BO3'; }
+            // 观战隐藏编辑入口
+            ['editPlayersBtn', 'editTeamNamesBtn', 'editMapsBtn'].forEach(k => {
+                const el = elements[k];
+                if (el) el.style.display = isSpectator ? 'none' : '';
+            });
+        }
+
+        // 更新UI以反映当前状态
+        function updateUI() {
+            // 更新骰子结果
+            elements.diceResult1.textContent = state.diceRolled ? state.diceResults.team1 : '?';
+            elements.diceResult2.textContent = state.diceRolled ? state.diceResults.team2 : '?';
+
+            //更新队伍名称显示
+            updateTeamNamesDisplay();
+
+
+            // 更新骰子胜者信息
+            if (state.diceRolled) {
+                if (state.diceResults.team1 > state.diceResults.team2) {
+                    elements.diceWinner.textContent = `队伍${state.teamNames.team1}获胜，获得优先选择权！`;
+                } else if (state.diceResults.team2 > state.diceResults.team1) {
+                    elements.diceWinner.textContent = `队伍${state.teamNames.team2}获胜，获得优先选择权！`;
+                }
+                elements.startSelectionBtn.disabled = false;
+            }
+
+            // 更新选择顺序提示
+            if (state.currentSelector) {
+                const teamName = state.currentSelector === 'team1' ? `${state.teamNames.team1}` : `${state.teamNames.team2}`;
+                elements.selectionTurnEl.textContent = `当前轮到 ${teamName} 队长选择队员`;
+                elements.selectionTurnEl.classList.add('pulse');
+                if (state.availablePlayers.length === 0 && state.currentPhase === 'player-selection') {
+                    elements.finishSelectionBtn.disabled = false;
+                    elements.selectionTurnEl.textContent = "已选完所有队员，请进入地图BP阶段";
+                    finishPlayerSelection()
+                }
+            }
+
+            // 更新可用队员和队伍成员
+            renderAvailablePlayers();
+            renderTeamPlayers();
+
+            // 更新阶段显示
+            if (state.currentPhase === 'player-selection') {
+                elements.playerSelectionSection.classList.remove('hidden');
+                elements.mapBpSection.classList.add('hidden');
+                elements.summarySection.classList.add('hidden');
+                elements.phasePlayerSelection.style.color = 'var(--secondary)';
+                elements.phasePlayerSelection.style.fontWeight = 'bold';
+                elements.phaseMapBp.style.color = 'inherit';
+                elements.phaseMapBp.style.fontWeight = 'normal';
+                elements.phaseSummary.style.color = 'inherit';
+                elements.phaseSummary.style.fontWeight = 'normal';
+            } else if (state.currentPhase === 'map-bp') {
+                elements.playerSelectionSection.classList.add('hidden');
+                elements.mapBpSection.classList.remove('hidden');
+                elements.summarySection.classList.add('hidden');
+                elements.phasePlayerSelection.style.color = 'inherit';
+                elements.phasePlayerSelection.style.fontWeight = 'normal';
+                elements.phaseMapBp.style.color = 'var(--secondary)';
+                elements.phaseMapBp.style.fontWeight = 'bold';
+                elements.phaseSummary.style.color = 'inherit';
+                elements.phaseSummary.style.fontWeight = 'normal';
+
+                // 更新地图BP相关UI
+                initMapPool();
+                updateMapStatus();
+                updateBannedMaps();
+                updateSelectedMaps();
+            } else if (state.currentPhase === 'summary') {
+                elements.playerSelectionSection.classList.add('hidden');
+                elements.mapBpSection.classList.add('hidden');
+                elements.summarySection.classList.remove('hidden');
+                elements.phasePlayerSelection.style.color = 'inherit';
+                elements.phasePlayerSelection.style.fontWeight = 'normal';
+                elements.phaseMapBp.style.color = 'inherit';
+                elements.phaseMapBp.style.fontWeight = 'normal';
+                elements.phaseSummary.style.color = 'var(--secondary)';
+                elements.phaseSummary.style.fontWeight = 'bold';
+
+                // 更新结算页面
+                updateSummaryPage();
+            }
+
+            // 更新状态文本
+            if (state.currentPhase === 'player-selection') {
+                if (!state.diceRolled) {
+                    elements.statusEl.textContent = "当前阶段：队员选择 - 请双方队长投掷骰子决定选人顺序";
+                } else if (!state.currentSelector) {
+                    elements.statusEl.textContent = "当前阶段：队员选择 - 请点击开始选人按钮";
+                } else if (state.availablePlayers.length === 0) {
+                    elements.statusEl.textContent = "当前阶段：队员选择 - 已选完所有队员，请进入地图BP阶段";
+                } else {
+                    elements.statusEl.textContent = "当前阶段：队员选择 - 请按顺序选择队员";
+                }
+            } else if (state.currentPhase === 'map-bp') {
+                elements.statusEl.textContent = `当前阶段：地图BP - ${steps[state.currentStep]?.desc || 'BP已完成'}`;
+            } else if (state.currentPhase === 'summary') {
+                elements.statusEl.textContent = "当前阶段：结算 - 所有信息已确认";
+            }
+
+            // 更新按钮状态
+            elements.confirmSelectionBtn.disabled = !state.currentSelector || !state.selectedPlayer || !isCurrentUserTurn();
+            elements.finishSelectionBtn.disabled = !(state.availablePlayers.length === 0 && state.currentSelector);
+            elements.confirmBtn.disabled = !state.selectedMap || !isCurrentUserTurn();
+            elements.startSelectionBtn.disabled = !state.diceRolled || state.currentSelector;
+
+            // 更新权限相关UI
+            updatePermissionUI();
+        }
+
+        // 判断当前是否是当前用户的操作回合
+        function isCurrentUserTurn() {
+            if (state.currentPhase === 'player-selection' && state.currentSelector) {
+                return currentTeam === state.currentSelector;
+            } else if (state.currentPhase === 'map-bp' && steps[state.currentStep]) {
+                const step = steps[state.currentStep];
+                // 判断当前步骤对应的队伍是否是当前用户的队伍
+                if (step.team === 'first' && state.firstHandTeam === currentTeam) {
+                    return true;
+                }
+                if (step.team === 'second' && state.secondHandTeam === currentTeam) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        // 队员选择功能
+        function rollDice() {
+            if (!stateSynced) return;
+            if (isSpectator) return;
+            if (state.diceRolled) return;
+            const arr = Object.values(users);
+            const online = arr.filter(u => u.online !== false);
+            const hostOnline = arr.some(u => u.role === 'host' && u.online !== false);
+            if (!(isHost || !hostOnline)) { showError('只有房主可以投掷骰子'); return; }
+            if (arr.filter(u => u.role !== 'spectator').length < 2) { showError('需要两位玩家入座才能开始'); return; }
+            elements.rollDiceBtn.disabled = true;
+            socket.emit('rollDice'); // v1.2：由服务器掷骰（防作弊、留痕）
+        }
+
+        function animateDiceResults(results) {
+            let n = 0;
+            const iv = setInterval(() => {
+                elements.diceResult1.textContent = Math.floor(Math.random() * 6) + 1;
+                elements.diceResult2.textContent = Math.floor(Math.random() * 6) + 1;
+                if (++n >= 12) {
+                    clearInterval(iv);
+                    elements.diceResult1.textContent = results.team1;
+                    elements.diceResult2.textContent = results.team2;
+                    updateUI();
+                }
+            }, 60);
+        }
+
+        function startPlayerSelection() {
+            if (!stateSynced) return;
+            if (isSpectator) return;
+            if (!state.diceRolled) return;
+
+            state.currentSelector = state.selectionOrder;
+            socket.emit('updateState', state);
+            // 禁用开始选人按钮，使其无法再次点击
+            elements.startSelectionBtn.disabled = true;
+        }
+
+        function renderAvailablePlayers() {
+            const countEl = document.getElementById('available-count');
+            if (countEl) countEl.textContent = '候选队员（共' + state.availablePlayers.length + '名）';
+            elements.availablePlayersEl.innerHTML = '';
+
+            state.availablePlayers.forEach(player => {
+                const playerCard = document.createElement('div');
+                playerCard.className = 'player-card';
+                playerCard.dataset.player = player;
+                playerCard.textContent = player;
+
+                // 只有当前选择方可以选择队员
+                if (isCurrentUserTurn()) {
+                    playerCard.addEventListener('click', () => selectPlayer(player));
+                } else {
+                    playerCard.style.cursor = 'not-allowed';
+                }
+
+                elements.availablePlayersEl.appendChild(playerCard);
+            });
+        }
+
+        function selectPlayer(player) {
+            if (!stateSynced) return;
+            if (!isCurrentUserTurn()) return;
+
+            // 清除之前的选择
+            document.querySelectorAll('.player-card.selected').forEach(card => {
+                card.classList.remove('selected');
+            });
+
+            // 选中当前玩家
+            state.selectedPlayer = player;
+            const playerCard = document.querySelector(`.player-card[data-player="${player}"]`);
+            if (playerCard) {
+                playerCard.classList.add('selected');
+            }
+
+            // 同步状态到服务器
+            socket.emit('updateState', state);
+        }
+
+        function confirmPlayerSelection() {
+            if (!stateSynced) return;
+            if (!state.selectedPlayer || !isCurrentUserTurn()) return;
+
+            // 将选中的玩家添加到当前选择队伍
+            if (state.currentSelector === 'team1') {
+                state.selectedPlayers.team1.push(state.selectedPlayer);
+            } else {
+                state.selectedPlayers.team2.push(state.selectedPlayer);
+            }
+
+            // 从可用玩家中移除
+            state.availablePlayers = state.availablePlayers.filter(
+                player => player !== state.selectedPlayer
+            );
+
+            // 记录最后选择队员的队伍（将成为地图BP的先手）
+            state.lastToPick = state.currentSelector;
+
+            // 重置选择状态
+            state.selectedPlayer = null;
+
+            // 切换选择方
+            state.currentSelector = state.currentSelector === 'team1' ? 'team2' : 'team1';
+
+            // 同步状态到服务器
+            socket.emit('updateState', state);
+        }
+
+        function renderTeamPlayers() {
+            // 渲染队伍1玩家
+            elements.team1PlayersEl.innerHTML = '';
+            state.selectedPlayers.team1.forEach(player => {
+                const playerCard = document.createElement('div');
+                playerCard.className = 'player-card';
+                // 队长显示特殊标记
+                if (player.includes('(队长)')) {
+                    playerCard.innerHTML = player.replace('(队长)', '<span class="captain-badge">队长</span>');
+                } else {
+                    playerCard.textContent = player;
+                }
+                elements.team1PlayersEl.appendChild(playerCard);
+            });
+
+            // 渲染队伍2玩家
+            elements.team2PlayersEl.innerHTML = '';
+            state.selectedPlayers.team2.forEach(player => {
+                const playerCard = document.createElement('div');
+                playerCard.className = 'player-card';
+                // 队长显示特殊标记
+                if (player.includes('(队长)')) {
+                    playerCard.innerHTML = player.replace('(队长)', '<span class="captain-badge">队长</span>');
+                } else {
+                    playerCard.textContent = player;
+                }
+                elements.team2PlayersEl.appendChild(playerCard);
+            });
+        }
+
+        function finishPlayerSelection() {
+            if (!stateSynced) return;
+            if (isSpectator) return;
+            if (state.availablePlayers.length > 0) return;
+            if (!state.currentSelector) return; // v1.2.2：需先掷骰并开始选人
+
+            // 设置地图BP的先手和后手队伍
+            // 最后选择队员的队伍（lastToPick）将成为地图BP的先手队伍；
+            // v1.2.2：一个都没选时（空名单），回退到掷骰决定的选人顺序
+            const fhTeam = state.lastToPick || state.selectionOrder || 'team1';
+            state.firstHandTeam = fhTeam;
+            state.secondHandTeam = fhTeam === 'team1' ? 'team2' : 'team1';
+
+            // 切换到地图BP阶段
+            state.currentPhase = 'map-bp';
+            state.matchFormat = state.matchFormat || 'BO3';
+            steps = buildSteps(state.matchFormat);
+            state.history = state.history || [];
+            state.history.push('📋 选人结束，进入地图BP（赛制 ' + state.matchFormat + '）');
+            state.stepStartedAt = Date.now();
+            state.bpStartedAt = Date.now();
+
+            // 设置先手和后手队伍名称
+            elements.team1Name.textContent = state.firstHandTeam === 'team1' ? '队伍A' : '队伍B';
+            elements.team2Name.textContent = state.secondHandTeam === 'team1' ? '队伍A' : '队伍B';
+
+            // 同步状态到服务器
+            socket.emit('updateState', state);
+        }
+
+        // 地图BP功能
+        function initMapPool() {
+
+            elements.mapPoolEl.innerHTML = '';
+
+            // 如果是阵营选择步骤，显示阵营选择按钮
+            if (steps[state.currentStep]?.action === 'camp') {
+                elements.mapPoolEl.innerHTML = `
+                    <div class="map-card camp-btn ct" data-map="ct">CT阵营</div>
+                    <div class="map-card camp-btn t" data-map="t">T阵营</div>
+                `;
+
+                document.querySelectorAll('.map-card').forEach(card => {
+                    if (isCurrentUserTurn()) {
+                        card.addEventListener('click', () => selectMap(card.dataset.map));
+                    } else {
+                        card.style.cursor = 'not-allowed';
+                    }
+                });
+                return;
+            }
+
+            // 否则显示地图池
+            state.mapPool.forEach(map => {
+                const mapCard = document.createElement('div');
+                mapCard.className = 'map-card';
+                mapCard.dataset.map = map;
+                mapCard.textContent = map;
+
+                // 检查是否已禁用或选择
+                if (state.bannedMaps.includes(map) ||
+                    state.selectedMaps.map1 === map ||
+                    state.selectedMaps.map2 === map ||
+                    state.selectedMaps.map3 === map) {
+                    mapCard.classList.add('disabled');
+                    mapCard.style.pointerEvents = 'none';
+                } else {
+                    if (isCurrentUserTurn()) {
+                        mapCard.addEventListener('click', () => selectMap(map));
+                    } else {
+                        mapCard.style.cursor = 'not-allowed';
+                    }
+                }
+
+                // 如果是当前选中的地图，添加选中样式
+                if (state.selectedMap === map) {
+                    mapCard.classList.add('selected');
+                    if (steps[state.currentStep]?.action === 'ban') {
+                        mapCard.classList.add('ban', 'pulse');
+                    } else if (steps[state.currentStep]?.action === 'select') {
+                        mapCard.classList.add('select', 'pulse');
+                    }
+                }
+
+                elements.mapPoolEl.appendChild(mapCard);
+            });
+        }
+
+        function selectMap(map) {
+            if (!stateSynced) return;
+            if (!isCurrentUserTurn()) return;
+
+            state.selectedMap = map;
+
+            // 同步状态到服务器
+            socket.emit('updateState', state);
+        }
+
+        function updateMapStatus() {
+            if (steps[state.currentStep]) {
+                elements.currentActionBadge.textContent = steps[state.currentStep].desc;
+
+                // 更新队伍操作状态和高亮
+                elements.team1Action.textContent = '当前操作：等待';
+                elements.team2Action.textContent = '当前操作：等待';
+                elements.team1Action.classList.remove('pulse');
+                elements.team2Action.classList.remove('pulse');
+                elements.firstHandTeam.classList.remove('current-turn');
+                elements.secondHandTeam.classList.remove('current-turn');
+
+                if (steps[state.currentStep].team === 'first') {
+                    elements.team1Action.textContent = `当前操作：${steps[state.currentStep].action === 'ban' ? '禁用地图' : steps[state.currentStep].action === 'select' ? '选择地图' : '选择阵营'}`;
+                    elements.team1Action.classList.add('pulse');
+                    elements.firstHandTeam.classList.add('current-turn');
+                } else if (steps[state.currentStep].team === 'second') {
+                    elements.team2Action.textContent = `当前操作：${steps[state.currentStep].action === 'ban' ? '禁用地图' : steps[state.currentStep].action === 'select' ? '选择地图' : '选择阵营'}`;
+                    elements.team2Action.classList.add('pulse');
+                    elements.secondHandTeam.classList.add('current-turn');
+                }
+            }
+
+            // 更新进度条
+            elements.progressEl.style.width = `${(state.currentStep / steps.length) * 100}%`;
+        }
+
+        function updateSelectedMaps() {
+            const wrap = document.getElementById('mapSteps');
+            if (!wrap) return;
+            const totalMaps = formatMapCount(state.matchFormat || 'BO3');
+            let html = '';
+            for (let i = 1; i <= totalMaps; i++) {
+                const m = state.selectedMaps['map' + i];
+                const camp = state.campChoices['map' + i];
+                const isDecider = (i === totalMaps);
+                let campText = '阵营：未选择';
+                if (camp && camp.choice) {
+                    campText = (camp.team === 'knife')
+                        ? `拼刀结果：从 ${camp.choice.toUpperCase()} 方开始`
+                        : `阵营选择：${camp.choice.toUpperCase()}`;
+                } else if (isDecider && m) {
+                    campText = '阵营：拼刀决定（可在结算页记录）';
+                }
+                html += `<div class="map-step"><h4>图${i}${isDecider && totalMaps > 1 ? '（决胜）' : ''}：${m || '未选择'}</h4><p>${campText}</p></div>`;
+            }
+            html += `<div class="map-step"><h4>已禁用地图</h4><div id="bannedMaps">${state.bannedMaps.length ? state.bannedMaps.join(', ') : '无'}</div></div>`;
+            wrap.innerHTML = html;
+        }
+
+        function updateBannedMaps() {
+            const el = document.getElementById('bannedMaps');
+            if (el) el.textContent = state.bannedMaps.length ? state.bannedMaps.join(', ') : '无';
+        }
+
+        function showCampSelectionFeedback(camp) {
+            // 创建临时提示元素
+            const feedback = document.createElement('div');
+            feedback.textContent = `已选择 ${camp === 'ct' ? 'CT' : 'T'} 阵营`;
+            feedback.style.position = 'fixed';
+            feedback.style.top = '50%';
+            feedback.style.left = '50%';
+            feedback.style.transform = 'translate(-50%, -50%)';
+            feedback.style.backgroundColor = camp === 'ct' ? 'rgba(26, 75, 140, 0.8)' : 'rgba(139, 0, 0, 0.8)';
+            feedback.style.color = 'white';
+            feedback.style.padding = '20px 40px';
+            feedback.style.borderRadius = '8px';
+            feedback.style.zIndex = '1000';
+            feedback.style.fontSize = '1.5rem';
+            feedback.style.transition = 'opacity 0.5s ease';
+
+            document.body.appendChild(feedback);
+
+            // 3秒后淡出提示
+            setTimeout(() => {
+                feedback.style.opacity = '0';
+                setTimeout(() => feedback.remove(), 500);
+            }, 1500);
+        }
+
+        function handleMapConfirm() {
+            if (!stateSynced || isSpectator) return;
+            if (state.currentStep >= steps.length || !isCurrentUserTurn()) return;
+            const step = steps[state.currentStep];
+            const sideName = (role) => {
+                const teamKey = role === 'first' ? state.firstHandTeam : state.secondHandTeam;
+                return teamKey ? (state.teamNames[teamKey] || teamKey) : (role === 'first' ? '先手队' : '后手队');
+            };
+            state.history = state.history || [];
+
+            if (step.action === 'ban') {
+                if (!state.selectedMap) return;
+                if (state.bannedMaps.includes(state.selectedMap) || Object.values(state.selectedMaps).includes(state.selectedMap)) {
+                    showError('该地图已被禁用或选择'); return;
+                }
+                state.bannedMaps.push(state.selectedMap);
+                state.history.push(`🚫 ${sideName(step.team)} 禁用 ${state.selectedMap}`);
+            } else if (step.action === 'select') {
+                if (!state.selectedMap) return;
+                if (state.bannedMaps.includes(state.selectedMap) || Object.values(state.selectedMaps).includes(state.selectedMap)) {
+                    showError('该地图已被禁用或选择'); return;
+                }
+                for (let i = 1; i <= 4; i++) {
+                    if (!state.selectedMaps['map' + i]) { state.selectedMaps['map' + i] = state.selectedMap; break; }
+                }
+                state.history.push(`✅ ${sideName(step.team)} 选择 ${state.selectedMap}`);
+            } else if (step.action === 'camp') {
+                if (!state.selectedMap) return;
+                for (let i = 1; i <= 4; i++) {
+                    const m = state.selectedMaps['map' + i];
+                    const camp = state.campChoices['map' + i];
+                    if (m && !(camp && camp.choice)) {
+                        state.campChoices['map' + i] = { team: step.team, choice: state.selectedMap };
+                        showCampSelectionFeedback(state.selectedMap);
+                        state.history.push(`🧭 ${sideName(step.team)} 为 图${i}(${m}) 选择阵营 ${state.selectedMap.toUpperCase()}`);
+                        break;
+                    }
+                }
+            }
+
+            // 进入下一步
+            state.currentStep++;
+            state.selectedMap = null;
+
+            // 处理最后一步（确定决胜图）
+            if (state.currentStep === steps.length - 1) {
+                const totalMaps = formatMapCount(state.matchFormat);
+                const remainingMaps = maps.filter(map =>
+                    !state.bannedMaps.includes(map) &&
+                    !Object.values(state.selectedMaps).includes(map)
+                );
+                let deciderIndex = totalMaps;
+                for (let i = 1; i <= totalMaps; i++) { if (!state.selectedMaps['map' + i]) { deciderIndex = i; break; } }
+                if (remainingMaps[0]) {
+                    state.selectedMaps['map' + deciderIndex] = remainingMaps[0];
+                    state.history.push(`🏁 ${totalMaps === 1 ? '比赛地图' : '决胜图'}（图${deciderIndex}）：${remainingMaps[0]}（阵营：拼刀决定）`);
+                }
+                state.bpEndedAt = Date.now();
+                state.stepStartedAt = null;
+                socket.emit('updateState', state);
+                setTimeout(() => {
+                    state.currentPhase = 'summary';
+                    socket.emit('updateState', state);
+                }, 1000);
+                return;
+            }
+
+            // 重置选择状态 & 计时
+            state.stepStartedAt = Date.now();
+            socket.emit('updateState', state);
+        }
+
+        // 结算页面功能
+        function updateSummaryPage() {
+            // 填充队伍信息
+            elements.team1SummaryPlayers.innerHTML = '';
+            state.selectedPlayers.team1.forEach(player => {
+                const playerCard = document.createElement('div');
+                playerCard.className = 'player-card';
+                if (player.includes('(队长)')) {
+                    playerCard.innerHTML = player.replace('(队长)', '<span class="captain-badge">队长</span>');
+                } else {
+                    playerCard.textContent = player;
+                }
+                elements.team1SummaryPlayers.appendChild(playerCard);
+            });
+
+            elements.team2SummaryPlayers.innerHTML = '';
+            state.selectedPlayers.team2.forEach(player => {
+                const playerCard = document.createElement('div');
+                playerCard.className = 'player-card';
+                if (player.includes('(队长)')) {
+                    playerCard.innerHTML = player.replace('(队长)', '<span class="captain-badge">队长</span>');
+                } else {
+                    playerCard.textContent = player;
+                }
+                elements.team2SummaryPlayers.appendChild(playerCard);
+            });
+
+            // 动态生成地图及阵营区（v1.2 支持 BO1/BO3/BO5）
+            const totalMaps = formatMapCount(state.matchFormat || 'BO3');
+            let html = '';
+            for (let i = 1; i <= totalMaps; i++) {
+                const m = state.selectedMaps['map' + i];
+                const camp = state.campChoices['map' + i];
+                const isDecider = (i === totalMaps && totalMaps > 1);
+                let sidesHtml = '';
+                if (!isDecider && totalMaps > 1) {
+                    if (camp && camp.choice && camp.team !== 'knife') {
+                        const sideSelf = camp.choice;
+                        const sideOther = sideSelf === 'ct' ? 't' : 'ct';
+                        const firstSide = (camp.team === 'first') ? sideSelf : sideOther;
+                        const secondSide = (camp.team === 'first') ? sideOther : sideSelf;
+                        const team1Side = (state.firstHandTeam === 'team1') ? firstSide : secondSide;
+                        const team2Side = (state.firstHandTeam === 'team1') ? secondSide : firstSide;
+                        sidesHtml = `<div>队伍A: <span class="team-camp ${team1Side}">${team1Side.toUpperCase()}</span></div>
+                                     <div>队伍B: <span class="team-camp ${team2Side}">${team2Side.toUpperCase()}</span></div>`;
+                    } else {
+                        sidesHtml = `<div>阵营待定（请完成选择）</div>`;
+                    }
+                } else {
+                    const knife = camp && camp.team === 'knife' ? camp.choice : null;
+                    sidesHtml = knife
+                        ? `<div>拼刀结果：胜者从 <span class="team-camp ${knife}">${knife.toUpperCase()}</span> 方开始</div>`
+                        : `<div>阵营决定方式: <strong>拼刀决定</strong>（可在下方记录结果）</div>`;
+                }
+                html += `<div class="map-summary-item">
+                    <div class="map-name">图${i}${isDecider ? '（决胜）' : ''}: <span>${m || '未选择'}</span></div>
+                    <div class="map-teams">${sidesHtml}</div>
+                </div>`;
+            }
+            html += `<div class="map-summary-item"><div class="map-name">已禁用地图</div><div>${state.bannedMaps.length ? state.bannedMaps.join(', ') : '无'}</div></div>`;
+            const items = document.getElementById('summary-map-items');
+            if (items) items.innerHTML = html;
+
+            // 拼刀记录块
+            const deciderIdx = totalMaps;
+            const deciderMap = state.selectedMaps['map' + deciderIdx];
+            const knifeCamp = state.campChoices['map' + deciderIdx];
+            const kBlock = document.getElementById('knife-block');
+            const kStatus = document.getElementById('knife-status');
+            if (kBlock) {
+                if (deciderMap && !(knifeCamp && knifeCamp.team === 'knife' && knifeCamp.choice)) {
+                    kBlock.style.display = '';
+                    kStatus.textContent = `尚未记录（决胜图：${deciderMap}）`;
+                } else if (deciderMap) {
+                    kBlock.style.display = '';
+                    kStatus.textContent = `已记录：胜者从 ${knifeCamp.choice.toUpperCase()} 方开始（${deciderMap}）`;
+                } else {
+                    kBlock.style.display = 'none';
+                }
+            }
+
+            // BP 记录与总时长
+            const hist = document.getElementById('bp-history');
+            if (hist) hist.textContent = (state.history || []).join('\n') || '（暂无记录）';
+            const dur = document.getElementById('bp-duration');
+            if (dur) {
+                if (state.bpStartedAt && state.bpEndedAt) {
+                    dur.textContent = `总用时 ${Math.round((state.bpEndedAt - state.bpStartedAt) / 1000)}s`;
+                } else {
+                    dur.textContent = '';
+                }
+            }
+        }
+
+        function backToBPStage() {
+            state.currentPhase = 'map-bp';
+            socket.emit('updateState', state);
+        }
+
+        // 重新开始整个流程
+        function restartAll() {
+            // 只有房主可以重新开始
+            if (!isHost) {
+                showError('只有房主可以重新开始');
+                return;
+            }
+
+            // 获取当前用户名称
+            const team1Captain = Object.values(users).find(u => u.team === 'team1')?.username;
+            const team2Captain = Object.values(users).find(u => u.team === 'team2')?.username;
+
+            // 重置所有状态
+            const newState = {
+                currentPhase: 'player-selection',
+                diceRolled: false,
+                diceResults: { team1: 0, team2: 0 },
+                selectionOrder: null,
+                lastToPick: null,
+                firstHandTeam: null,
+                secondHandTeam: null,
+                currentSelector: null,
+                selectedPlayers: {
+                    team1: [team1Captain ? team1Captain + " (队长)" : "队伍A队长"],
+                    team2: [team2Captain ? team2Captain + " (队长)" : "队伍B队长"]
+                },
+                availablePlayers: [],
+                selectedPlayer: null,
+                currentStep: 0,
+                bannedMaps: [],
+                selectedMaps: {
+                    map1: null,
+                    map2: null,
+                    map3: null
+                },
+                campChoices: {
+                    map1: { team: null, choice: null },
+                    map2: { team: null, choice: null }
+                },
+                selectedMap: null
+            };
+
+            // 同步状态到服务器
+            socket.emit('updateState', newState);
+        }
+
+        function resetBP() {
+            // 只有房主可以重置BP
+            if (!isHost) {
+                showError('只有房主可以重置BP');
+                return;
+            }
+
+            // 重置地图BP状态
+            state.currentStep = 0;
+            state.bannedMaps = [];
+            state.selectedMaps = {
+                map1: null,
+                map2: null,
+                map3: null
+            };
+            state.campChoices = {
+                map1: { team: null, choice: null },
+                map2: { team: null, choice: null }
+            };
+            state.selectedMap = null;
+
+            // 同步状态到服务器
+            socket.emit('updateState', state);
+        }
+
+        // 启动应用
+        init();
+    </script>
+</body>
+
+</html>
