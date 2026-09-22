@@ -12,10 +12,9 @@
 | `deploy/` | 部署参考（Nginx 反代示例、启动命令） | — |
 
 ## 功能一览（主站）
-- 留言板 & 每日打卡（含隐藏彩蛋）
+- 留言板 & 每日打卡
 - 论坛：注册 / 发帖 / 评论 / 图片上传
 - 每日谜题：电竞 / 游戏 / 体育 / 动漫 题库，计分与榜单
-- 干净 URL（如 `/forum/login`）
 
 ## 快速开始
 - 主站后端：`python api/comments_api.py`（首次运行会自动初始化 `data/`）
@@ -30,4 +29,3 @@
 ## 说明
 - `cs2bp/` 基于 [Andycommander66/cs2-map-bp-tool](https://github.com/Andycommander66/cs2-map-bp-tool)（MIT 许可）的本地定制版
 - 站点字体使用 [Zpix 最像素](https://github.com/SolidZORO/zpix-pixel-font)，遵循其原始许可
-- 自用小项目；如需引用请先联系作者
